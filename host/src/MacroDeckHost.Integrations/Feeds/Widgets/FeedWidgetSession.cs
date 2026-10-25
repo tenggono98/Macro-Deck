@@ -21,6 +21,7 @@ internal sealed class FeedWidgetSession : IUiSession
 {
 	private static readonly ILogger _logger = IntegrationLog.For<FeedWidgetSession>(FeedsIntegration.IntegrationId);
 
+	private readonly FeedWidgetKind _kind;
 	private readonly FeedWidgetOptions _options;
 	private readonly IFeedSource _source;
 	private readonly IFeedImages _images;
@@ -30,6 +31,7 @@ internal sealed class FeedWidgetSession : IUiSession
 	private readonly string? _cultureName;
 	private readonly UiState<FeedWidgetState> _state;
 	private readonly UiState<int> _index = new(0);
+	private readonly UiState<int> _page = new(0);
 	private readonly UiState<UiResource?> _icon;
 	private readonly UiView _view;
 	private readonly ITimer _timer;
@@ -54,6 +56,7 @@ internal sealed class FeedWidgetSession : IUiSession
 		ArgumentNullException.ThrowIfNull(source);
 		ArgumentNullException.ThrowIfNull(images);
 
+		_kind = kind;
 		_options = options;
 		_source = source;
 		_images = images;
@@ -70,16 +73,18 @@ internal sealed class FeedWidgetSession : IUiSession
 			FeedWidgetView.Build(kind,
 				_state,
 				_index,
+				_page,
 				_icon,
 				options,
 				Press,
+				Swipe,
 				UiWidgetSafeArea.RadiusOf(surface),
 				FeedWidgetOptions.BackgroundColor(data)));
 		_view.Changed += (_, _) => Changed?.Invoke(this, EventArgs.Empty);
 		_view.HandlerFaulted += (_, fault)
 			=> Faulted?.Invoke(this, new UiSessionFaultedEventArgs(fault.Exception.Message, fault.Exception));
 
-		var cycle = kind == FeedWidgetKind.Featured && options.CycleSeconds > 0
+		var cycle = options.CycleSeconds > 0
 			? TimeSpan.FromSeconds(options.CycleSeconds)
 			: Timeout.InfiniteTimeSpan;
 		_timer = time.CreateTimer(_ => Advance(), null, cycle, cycle);
@@ -235,26 +240,120 @@ internal sealed class FeedWidgetSession : IUiSession
 		Refresh();
 	}
 
+	private UiEventOutcome Swipe(UiEventData data)
+	{
+		if (!data.TryGetString(out var direction))
+		{
+			return UiEventOutcome.Accepted;
+		}
+
+		lock (_sync)
+		{
+			if (_disposed)
+			{
+				return UiEventOutcome.Accepted;
+			}
+
+			var pages = PageCount();
+			if (pages < 2)
+			{
+				return UiEventOutcome.Accepted;
+			}
+
+			var delta = direction is "up" or "left" ? 1 : -1;
+			using (_view.Batch())
+			{
+				_page.Set((CurrentPage() + delta + pages) % pages);
+			}
+
+			TrackImages();
+		}
+
+		return UiEventOutcome.Accepted;
+	}
+
 	private void Advance()
 	{
 		lock (_sync)
 		{
-			if (_disposed || _state.Value.Rows.Count < 2)
+			if (_disposed)
+			{
+				return;
+			}
+
+			if (_kind == FeedWidgetKind.List)
+			{
+				var pages = PageCount();
+				if (pages < 2)
+				{
+					return;
+				}
+
+				using (_view.Batch())
+				{
+					_page.Set((CurrentPage() + 1) % pages);
+				}
+
+				TrackImages();
+				return;
+			}
+
+			var count = Math.Min(_state.Value.Rows.Count, Math.Max(1, _options.Count));
+			if (count < 2)
 			{
 				return;
 			}
 
 			using (_view.Batch())
 			{
-				_index.Set((_index.Value + 1) % _state.Value.Rows.Count);
+				_index.Set((_index.Value + 1) % count);
 			}
+
+			TrackImages();
+		}
+	}
+
+	private int PageCount()
+	{
+		var size = Math.Max(1, _options.Count);
+		return Math.Max(1, (_state.Value.Rows.Count + size - 1) / size);
+	}
+
+	private int CurrentPage()
+	{
+		return Math.Clamp(_page.Value, 0, Math.Max(0, PageCount() - 1));
+	}
+
+	private List<FeedRow> VisibleRows()
+	{
+		if (_kind == FeedWidgetKind.Featured)
+		{
+			return FeedWidgetView.Current(_state.Value, _index.Value) is { } row ? [row] : [];
+		}
+
+		var size = Math.Max(1, _options.Count);
+		var current = CurrentPage();
+		return _state.Value.Rows.Skip(current * size).Take(size).ToList();
+	}
+
+	private void TrackImages()
+	{
+		if (!_options.ShowThumbnail)
+		{
+			return;
+		}
+
+		foreach (var row in VisibleRows().Where(candidate => candidate is { Image: null, ImageUrl: not null }))
+		{
+			var allowLocal = _source.Find(row.EntryId)?.AllowLocalNetwork == true;
+			_images.Track(row.ImageUrl!, allowLocal);
 		}
 	}
 
 	private FeedWidgetState Resolve()
 	{
 		var format = new FeedDateFormat(_culture, _time.LocalTimeZone, _time.GetUtcNow());
-		return FeedWidgetResolver.Resolve(_options, _source.Feeds, _options.Count, format, _images.Find);
+		return FeedWidgetResolver.Resolve(_options, _source.Feeds, format, _images.Find);
 	}
 
 	private void Refresh()
@@ -272,21 +371,27 @@ internal sealed class FeedWidgetSession : IUiSession
 				using (_view.Batch())
 				{
 					_state.Set(next);
-					if (_index.Value >= next.Rows.Count)
+
+					if (_kind == FeedWidgetKind.Featured)
 					{
-						_index.Set(0);
+						var count = Math.Min(next.Rows.Count, Math.Max(1, _options.Count));
+						if (_index.Value >= count)
+						{
+							_index.Set(0);
+						}
+					}
+					else
+					{
+						var pages = PageCount();
+						if (_page.Value >= pages)
+						{
+							_page.Set(pages - 1);
+						}
 					}
 				}
 			}
 
-			if (_options.ShowThumbnail)
-			{
-				foreach (var row in next.Rows.Where(candidate => candidate is { Image: null, ImageUrl: not null }))
-				{
-					var allowLocal = _source.Find(row.EntryId)?.AllowLocalNetwork == true;
-					_images.Track(row.ImageUrl!, allowLocal);
-				}
-			}
+			TrackImages();
 
 			if (_pendingIcon is { } pending)
 			{

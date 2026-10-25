@@ -19,6 +19,9 @@ internal static class FeedWidgetConfigView
 		var feed = new UiState<string>(options.FeedId?.ToString("D") ?? string.Empty);
 		var group = new UiState<string>(options.Group ?? string.Empty);
 		var count = new UiState<double>(options.Count);
+		var skip = new UiState<double>(options.Skip);
+		var textScale = new UiState<double>(options.TextScale);
+		var imageScale = new UiState<double>(options.ImageScale);
 		var showDescription = new UiState<bool>(options.ShowDescription);
 		var showThumbnail = new UiState<bool>(options.ShowThumbnail);
 		var cycleSeconds = new UiState<double>(options.CycleSeconds);
@@ -82,12 +85,33 @@ internal static class FeedWidgetConfigView
 				Key = FeedWidgetTypes.CountKey,
 				Label = kind == FeedWidgetKind.List ? Strings.Config.Count() : Strings.Config.FeaturedCount(),
 				Description = kind == FeedWidgetKind.List
-					? Strings.Config.CountDescription()
+					? Strings.Config.PageCountDescription()
 					: Strings.Config.FeaturedCountDescription(),
 				Binding = Bind.To(count),
 				Min = 1,
 				Max = FeedWidgetTypes.MaxCount,
 				Step = 1
+			},
+			new UiNumberInput
+			{
+				Key = FeedWidgetTypes.SkipKey,
+				Label = Strings.Config.Skip(),
+				Description = Strings.Config.SkipDescription(),
+				Binding = Bind.To(skip),
+				Min = 0,
+				Max = FeedWidgetTypes.MaxSkip,
+				Step = 1
+			},
+			new UiNumberInput
+			{
+				Key = FeedWidgetTypes.TextScaleKey,
+				Label = Strings.Config.TextScale(),
+				Description = Strings.Config.TextScaleDescription(),
+				Binding = Bind.To(textScale),
+				Min = FeedWidgetTypes.MinTextScale,
+				Max = FeedWidgetTypes.MaxTextScale,
+				Step = 5,
+				ShowSlider = true
 			},
 			new UiBooleanInput
 			{
@@ -103,19 +127,33 @@ internal static class FeedWidgetConfigView
 			}
 		};
 
-		if (kind == FeedWidgetKind.Featured)
+		if (kind == FeedWidgetKind.List)
 		{
 			children.Add(new UiNumberInput
 			{
-				Key = FeedWidgetTypes.CycleSecondsKey,
-				Label = Strings.Config.CycleSeconds(),
-				Description = Strings.Config.CycleSecondsDescription(),
-				Binding = Bind.To(cycleSeconds),
-				Min = 0,
-				Max = FeedWidgetTypes.MaxCycleSeconds,
-				Step = 1
+				Key = FeedWidgetTypes.ImageScaleKey,
+				Label = Strings.Config.ImageScale(),
+				Description = Strings.Config.ImageScaleDescription(),
+				Binding = Bind.To(imageScale),
+				Min = FeedWidgetTypes.MinImageScale,
+				Max = FeedWidgetTypes.MaxImageScale,
+				Step = 5,
+				ShowSlider = true
 			});
 		}
+
+		children.Add(new UiNumberInput
+		{
+			Key = FeedWidgetTypes.CycleSecondsKey,
+			Label = kind == FeedWidgetKind.List ? Strings.Config.PageSeconds() : Strings.Config.CycleSeconds(),
+			Description = kind == FeedWidgetKind.List
+				? Strings.Config.PageSecondsDescription()
+				: Strings.Config.CycleSecondsDescription(),
+			Binding = Bind.To(cycleSeconds),
+			Min = 0,
+			Max = FeedWidgetTypes.MaxCycleSeconds,
+			Step = 1
+		});
 
 		children.Add(new UiChoiceInput
 		{

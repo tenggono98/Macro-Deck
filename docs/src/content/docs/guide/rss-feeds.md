@@ -51,12 +51,17 @@ The **Feed List** widget lists the newest articles with their title, the date, a
 shows more than one feed. Choose in its settings:
 
 - **Show**: **All feeds**, **One feed** or **One group**, and which feed or group.
-- **Articles**: how many articles it lists, up to 10.
+- **Articles**: how many articles each page shows, up to 10.
+- **Start at article**: how many of the newest articles to skip before the first page.
+- **Text size** and **Image size**: scale the article text and the small images, as a percentage.
 - **Show description** and **Show images**: whether each article shows the start of its text and a small
   image, when the feed has one.
+- **Next page after (seconds)**: move to the next page by itself; 0 keeps the page where it is.
 - **When tapped**: what tapping an article does, see [Tapping an article](#tapping-an-article).
 
-Articles that arrived since you added the feed and that you have not tapped yet are shown in bold.
+Swipe the list up or down to move between pages. The counter in the header shows the current page and how
+many there are. Articles that arrived since you added the feed and that you have not tapped yet are shown
+in bold.
 
 ## The Featured Article widget
 
@@ -64,7 +69,8 @@ The **Featured Article** widget shows the newest article large: the feed's name 
 article's image, its title in up to two lines, the date, and up to three lines of description when **Show
 description** is on. The image takes whatever room the text leaves and is cropped to fill it; on a small
 widget it shrinks or is left out, so the title always stays readable. Its settings are the same as the Feed
-List's, plus:
+List's for the feed, text size, description, images and tap behaviour. The article count is how many it
+cycles through, and there is no image size setting or page paging. It adds:
 
 - **Articles to cycle through** and **Next article after (seconds)**: with a number of seconds above 0, the
   widget takes turns showing that many of the newest articles. With 0 it always shows the newest one.

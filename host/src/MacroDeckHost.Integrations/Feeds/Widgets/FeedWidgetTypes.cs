@@ -31,6 +31,12 @@ internal static class FeedWidgetTypes
 
 	public const string CountKey = "count";
 
+	public const string SkipKey = "skip";
+
+	public const string TextScaleKey = "textScale";
+
+	public const string ImageScaleKey = "imageScale";
+
 	public const string ShowDescriptionKey = "showDescription";
 
 	public const string ShowThumbnailKey = "showThumbnail";
@@ -59,6 +65,19 @@ internal static class FeedWidgetTypes
 
 	public const int MaxCycleSeconds = 3600;
 
+	public const int MaxSkip = 50;
+
+	public const int MinTextScale = 50;
+
+	public const int MaxTextScale = 250;
+
+	public const int MinImageScale = 50;
+
+	public const int MaxImageScale = 300;
+
+	// The feed engine keeps at most 50 items per feed. A group or all-feeds widget still needs a bound.
+	public const int MaxRows = 200;
+
 	private static readonly string[] _nullableString = ["string", "null"];
 
 	public static IReadOnlyList<string> Sources { get; } = [AllSource, FeedSource, GroupSource];
@@ -77,6 +96,9 @@ internal static class FeedWidgetTypes
 		{
 			[SourceKey] = AllSource,
 			[CountKey] = defaults.Count,
+			[SkipKey] = 0,
+			[TextScaleKey] = 100,
+			[ImageScaleKey] = 100,
 			[ShowDescriptionKey] = defaults.ShowDescription,
 			[ShowThumbnailKey] = defaults.ShowThumbnail,
 			[CycleSecondsKey] = defaults.CycleSeconds,
@@ -95,6 +117,9 @@ internal static class FeedWidgetTypes
 				[FeedKey] = new { type = "string" },
 				[GroupKey] = new { type = "string" },
 				[CountKey] = new { type = "number", minimum = 1, maximum = MaxCount },
+				[SkipKey] = new { type = "number", minimum = 0, maximum = MaxSkip },
+				[TextScaleKey] = new { type = "number", minimum = MinTextScale, maximum = MaxTextScale },
+				[ImageScaleKey] = new { type = "number", minimum = MinImageScale, maximum = MaxImageScale },
 				[ShowDescriptionKey] = new { type = "boolean" },
 				[ShowThumbnailKey] = new { type = "boolean" },
 				[CycleSecondsKey] = new { type = "number", minimum = 0, maximum = MaxCycleSeconds },

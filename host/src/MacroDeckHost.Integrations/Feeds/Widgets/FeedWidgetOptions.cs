@@ -13,6 +13,12 @@ internal sealed record FeedWidgetOptions
 
 	public int Count { get; init; } = 5;
 
+	public int Skip { get; init; }
+
+	public int TextScale { get; init; } = 100;
+
+	public int ImageScale { get; init; } = 100;
+
 	public bool ShowDescription { get; init; }
 
 	public bool ShowThumbnail { get; init; } = true;
@@ -43,6 +49,15 @@ internal sealed record FeedWidgetOptions
 			Count = ReadNumber(data, FeedWidgetTypes.CountKey) is { } count
 				? (int)Math.Clamp(Math.Round(count), 1, FeedWidgetTypes.MaxCount)
 				: defaults.Count,
+			Skip = ReadNumber(data, FeedWidgetTypes.SkipKey) is { } skip
+				? (int)Math.Clamp(Math.Round(skip), 0, FeedWidgetTypes.MaxSkip)
+				: 0,
+			TextScale = ReadNumber(data, FeedWidgetTypes.TextScaleKey) is { } textScale
+				? (int)Math.Clamp(Math.Round(textScale), FeedWidgetTypes.MinTextScale, FeedWidgetTypes.MaxTextScale)
+				: 100,
+			ImageScale = ReadNumber(data, FeedWidgetTypes.ImageScaleKey) is { } imageScale
+				? (int)Math.Clamp(Math.Round(imageScale), FeedWidgetTypes.MinImageScale, FeedWidgetTypes.MaxImageScale)
+				: 100,
 			ShowDescription = ReadBool(data, FeedWidgetTypes.ShowDescriptionKey) ?? defaults.ShowDescription,
 			ShowThumbnail = ReadBool(data, FeedWidgetTypes.ShowThumbnailKey) ?? defaults.ShowThumbnail,
 			CycleSeconds = ReadNumber(data, FeedWidgetTypes.CycleSecondsKey) is { } seconds

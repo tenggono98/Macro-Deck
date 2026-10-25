@@ -27,15 +27,16 @@ internal sealed class FeedWidgetTests
 	private FakeFeedServer _server = null!;
 	private FeedsTestContext _context = null!;
 	private FeedsIntegration _integration = null!;
+	private FakeTimeProvider _time = null!;
 
 	[SetUp]
 	public async Task SetUp()
 	{
 		_server = new FakeFeedServer();
-		var time = new FakeTimeProvider();
+		_time = new FakeTimeProvider();
 		_context = new FeedsTestContext();
 		_context.AddFeed("News", NewsUrl, "news", id: _newsId);
-		_integration = new FeedsIntegration(FeedsTestClients.Create(_server, null, time), time, false);
+		_integration = new FeedsIntegration(FeedsTestClients.Create(_server, null, _time), _time, false);
 		await _integration.InitializeAsync(_context);
 
 		_server.ServeXml(NewsUrl, FeedsIntegrationTests.News(FeedsIntegrationTests.First));
@@ -64,6 +65,91 @@ internal sealed class FeedWidgetTests
 		{
 			Assert.That(texts, Does.Contain("Second"));
 			Assert.That(texts, Does.Not.Contain("First"));
+		});
+	}
+
+	[Test]
+	public async Task The_list_starts_at_the_configured_skip()
+	{
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId, new { count = 1, skip = 1 });
+
+		var texts = CalendarTree.Texts(session.BuildTree().Root);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(texts, Does.Contain("First"));
+			Assert.That(texts, Does.Not.Contain("Second"));
+		});
+	}
+
+	[Test]
+	public async Task The_list_pages_on_swipe()
+	{
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId, new { count = 1 });
+
+		var before = CalendarTree.Texts(session.BuildTree().Root);
+		var rows = CalendarTree.Get(session.BuildTree().Root, "rows");
+
+		session.Dispatch(new UiEvent
+		{
+			NodeId = rows.Id,
+			Name = UiComponentEvents.Swipe,
+			Data = JsonSerializer.SerializeToElement("up")
+		});
+
+		var after = CalendarTree.Texts(session.BuildTree().Root);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(before, Does.Contain("Second"));
+			Assert.That(before, Does.Contain("1/2"));
+			Assert.That(after, Does.Contain("First"));
+			Assert.That(after, Does.Not.Contain("Second"));
+			Assert.That(after, Does.Contain("2/2"));
+		});
+	}
+
+	[Test]
+	public async Task The_list_advances_its_page_on_its_cycle_seconds()
+	{
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { count = 1, cycleSeconds = 5 });
+
+		Assert.That(CalendarTree.Texts(session.BuildTree().Root), Does.Contain("Second"));
+
+		_time.Advance(TimeSpan.FromSeconds(5));
+
+		var texts = CalendarTree.Texts(session.BuildTree().Root);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(texts, Does.Contain("First"));
+			Assert.That(texts, Does.Not.Contain("Second"));
+		});
+	}
+
+	[Test]
+	public async Task The_list_scales_the_article_text_and_image()
+	{
+		await ServeSecondWithImageAsync();
+		await using var normal = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId, new { count = 1 });
+		await using var scaled = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { count = 1, textScale = 200, imageScale = 200 });
+
+		await CalendarTree.WaitForAsync(
+			() => CalendarTree.Find(normal.BuildTree().Root, "thumbnail") is not null
+				&& CalendarTree.Find(scaled.BuildTree().Root, "thumbnail") is not null,
+			"a widget never showed its thumbnail");
+
+		var normalTitle = CalendarTree.Get(normal.BuildTree().Root, "title");
+		var scaledTitle = CalendarTree.Get(scaled.BuildTree().Root, "title");
+		var normalThumbnail = CalendarTree.Get(normal.BuildTree().Root, "thumbnail");
+		var scaledThumbnail = CalendarTree.Get(scaled.BuildTree().Root, "thumbnail");
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(Basis(scaledTitle), Is.EqualTo(Basis(normalTitle) * 2).Within(1e-9));
+			Assert.That(Basis(scaledThumbnail), Is.EqualTo(Basis(normalThumbnail) * 2).Within(1e-9));
 		});
 	}
 
@@ -249,6 +335,38 @@ internal sealed class FeedWidgetTests
 		});
 	}
 
+	[Test]
+	public async Task The_list_configuration_offers_skip_paging_and_size_options()
+	{
+		await using var session = (await _integration.CreateSessionAsync(new UiSessionRequest
+			{
+				Surface = new UiSurface
+				{
+					Kind = UiSurfaceKinds.Config,
+					SessionMode = UiSessionModes.Exclusive,
+					Attributes = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+					{
+						[UiConfigSurfaceAttributes.EntryPoint]
+							= JsonSerializer.SerializeToElement(UiConfigEntryPoints.WidgetConfig),
+						[UiConfigSurfaceAttributes.WidgetType]
+							= JsonSerializer.SerializeToElement(FeedWidgetTypes.ListQualifiedId)
+					}
+				},
+				UiModelVersion = 1
+			},
+			CancellationToken.None))!;
+
+		var nodes = CalendarTree.Flatten(session.BuildTree().Root).Select(node => node.Id).ToList();
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.SkipKey));
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.TextScaleKey));
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.ImageScaleKey));
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.CycleSecondsKey));
+		});
+	}
+
 	private static void Tap(IUiSession session, IUiEventOrigin origin)
 	{
 		var node = CalendarTree.Flatten(session.BuildTree().Root).First(CalendarTree.IsPressable);
@@ -277,6 +395,13 @@ internal sealed class FeedWidgetTests
 	private static bool HasSource(UiNode node)
 	{
 		return node.Properties.ContainsKey(UiComponentProperties.Source);
+	}
+
+	private static double Basis(UiNode node)
+	{
+		var size = node.Properties[UiComponentProperties.Size];
+
+		return size.ValueKind == JsonValueKind.Number ? size.GetDouble() : size.GetProperty("basis").GetDouble();
 	}
 
 	private static bool HasOpenButton(UiNode root)

@@ -24932,6 +24932,33 @@ Macro Deck 웹사이트에서 다운로드한 후 설치한 AppImage, DEB 또는
   <data name="Widgets.Feeds.Config.CountDescription" xml:space="preserve">
     <value>위젯 목록에 표시할 글의 수입니다.</value>
   </data>
+  <data name="Widgets.Feeds.Config.Skip" xml:space="preserve">
+    <value>Start at article</value>
+  </data>
+  <data name="Widgets.Feeds.Config.SkipDescription" xml:space="preserve">
+    <value>Skip this many of the newest articles before the first page.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.PageCountDescription" xml:space="preserve">
+    <value>How many articles each page shows.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.TextScale" xml:space="preserve">
+    <value>Text size (%)</value>
+  </data>
+  <data name="Widgets.Feeds.Config.TextScaleDescription" xml:space="preserve">
+    <value>Scales the article text. 100% is the default.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.ImageScale" xml:space="preserve">
+    <value>Image size (%)</value>
+  </data>
+  <data name="Widgets.Feeds.Config.ImageScaleDescription" xml:space="preserve">
+    <value>Scales the article images. 100% is the default.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.PageSeconds" xml:space="preserve">
+    <value>Next page after (seconds)</value>
+  </data>
+  <data name="Widgets.Feeds.Config.PageSecondsDescription" xml:space="preserve">
+    <value>0 keeps the first page.</value>
+  </data>
   <data name="Widgets.Feeds.Config.FeaturedCount" xml:space="preserve">
     <value>순환할 글 수</value>
   </data>

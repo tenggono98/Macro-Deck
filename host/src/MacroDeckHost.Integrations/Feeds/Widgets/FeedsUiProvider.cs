@@ -87,8 +87,10 @@ internal sealed class FeedsUiProvider : IUiProvider
 				FeedWidgetView.Build(widgetKind,
 					new UiState<FeedWidgetState>(Sample(UiWidgetSurface.Culture(surface))),
 					new UiState<int>(0),
+					new UiState<int>(0),
 					new UiState<UiResource?>(icon),
 					options with { ShowThumbnail = false },
+					_ => UiEventOutcome.Accepted,
 					_ => UiEventOutcome.Accepted,
 					UiWidgetSafeArea.RadiusOf(surface),
 					FeedWidgetOptions.BackgroundColor(data))));

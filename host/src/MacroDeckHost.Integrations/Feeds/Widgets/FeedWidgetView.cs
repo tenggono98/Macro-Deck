@@ -17,12 +17,8 @@ internal static class FeedWidgetView
 	private const double TallTile = 1.5;
 
 	private static readonly UiLength _headingText = UiLength.Capped(0.095, 11.5);
-	private static readonly UiLength _titleText = UiLength.Capped(0.09, 11);
-	private static readonly UiLength _featuredTitleText = UiLength.Capped(0.11, 13);
-	private static readonly UiLength _text = UiLength.Capped(0.08, 9.5);
-	private static readonly UiLength _smallText = UiLength.Capped(0.07, 8.5);
+	private static readonly UiLength _pageText = UiLength.Capped(0.07, 8.5);
 	private static readonly UiLength _icon = UiLength.Capped(0.1, 12);
-	private static readonly UiLength _thumbnail = UiLength.Capped(0.2, 24);
 	private static readonly UiLength _gap = UiLength.Capped(0.035, 4);
 
 	// The header sits on the artwork too, so the scrim darkens the top edge as well as the bottom.
@@ -36,19 +32,23 @@ internal static class FeedWidgetView
 		FeedWidgetKind kind,
 		UiState<FeedWidgetState> state,
 		UiState<int> index,
+		UiState<int> page,
 		UiState<UiResource?> icon,
 		FeedWidgetOptions options,
 		Func<string, UiEventOutcome> press,
+		Func<UiEventData, UiEventOutcome> swipe,
 		int cornerRadius = UiWidgetSafeArea.DefaultCornerRadius,
 		string? backgroundColor = null)
 	{
 		ArgumentNullException.ThrowIfNull(state);
 		ArgumentNullException.ThrowIfNull(index);
+		ArgumentNullException.ThrowIfNull(page);
 		ArgumentNullException.ThrowIfNull(icon);
 		ArgumentNullException.ThrowIfNull(options);
 		ArgumentNullException.ThrowIfNull(press);
+		ArgumentNullException.ThrowIfNull(swipe);
 
-		var builder = new Builder(state, index, icon, options, press, cornerRadius);
+		var builder = new Builder(kind, state, index, page, icon, options, press, swipe, cornerRadius);
 		var background = backgroundColor is { } color ? UiValue.Of(color) : UiValue.None<string>();
 		if (kind == FeedWidgetKind.List)
 		{
@@ -92,13 +92,32 @@ internal static class FeedWidgetView
 	}
 
 	private sealed class Builder(
+		FeedWidgetKind kind,
 		UiState<FeedWidgetState> state,
 		UiState<int> index,
+		UiState<int> page,
 		UiState<UiResource?> icon,
 		FeedWidgetOptions options,
 		Func<string, UiEventOutcome> press,
+		Func<UiEventData, UiEventOutcome> swipe,
 		int cornerRadius)
 	{
+		private double TextFactor =>
+			Math.Clamp(options.TextScale, FeedWidgetTypes.MinTextScale, FeedWidgetTypes.MaxTextScale) / 100d;
+
+		private double ImageFactor =>
+			Math.Clamp(options.ImageScale, FeedWidgetTypes.MinImageScale, FeedWidgetTypes.MaxImageScale) / 100d;
+
+		private UiLength TitleText => UiLength.Capped(0.09 * TextFactor, 11 * TextFactor);
+
+		private UiLength FeaturedTitleText => UiLength.Capped(0.11 * TextFactor, 13 * TextFactor);
+
+		private UiLength BodyText => UiLength.Capped(0.08 * TextFactor, 9.5 * TextFactor);
+
+		private UiLength SmallText => UiLength.Capped(0.07 * TextFactor, 8.5 * TextFactor);
+
+		private UiLength ThumbnailSize => UiLength.Capped(0.2 * ImageFactor, 24 * ImageFactor);
+
 		public bool HasArtwork()
 		{
 			return options.ShowThumbnail
@@ -213,38 +232,58 @@ internal static class FeedWidgetView
 
 		private UiStack Header(bool onArtwork)
 		{
+			var children = new List<UiElement>
+			{
+				new UiWhen
+				{
+					Key = "iconGate",
+					Condition = () => icon.Value is not null,
+					Content = () => new UiImage
+					{
+						Key = "icon",
+						Source = UiValue.Optional(() => Image(icon.Value)),
+						Size = _icon,
+						MainSize = _icon
+					}
+				},
+				new UiTextRun
+				{
+					Key = "heading",
+					Text = UiText.Optional(() => state.Value.Heading),
+					Size = _headingText,
+					Weight = UiComponentTextWeights.SemiBold,
+					Role = UiComponentTextRoles.Primary,
+					Color = Ink(onArtwork, ArtworkInk),
+					MaxLines = 1,
+					Fill = true
+				}
+			};
+
+			if (kind == FeedWidgetKind.List)
+			{
+				children.Add(new UiWhen
+				{
+					Key = "pageGate",
+					Condition = () => PageCount() > 1,
+					Content = () => new UiTextRun
+					{
+						Key = "page",
+						Text = UiText.From(() => $"{CurrentPage() + 1}/{PageCount()}"),
+						Size = _pageText,
+						Role = UiComponentTextRoles.Muted,
+						MaxLines = 1,
+						Digits = 4
+					}
+				});
+			}
+
 			return new UiStack
 			{
 				Key = "header",
 				Direction = UiComponentDirections.Horizontal,
 				Align = UiComponentAlignments.Center,
 				Gap = _gap,
-				Children =
-				[
-					new UiWhen
-					{
-						Key = "iconGate",
-						Condition = () => icon.Value is not null,
-						Content = () => new UiImage
-						{
-							Key = "icon",
-							Source = UiValue.Optional(() => Image(icon.Value)),
-							Size = _icon,
-							MainSize = _icon
-						}
-					},
-					new UiTextRun
-					{
-						Key = "heading",
-						Text = UiText.Optional(() => state.Value.Heading),
-						Size = _headingText,
-						Weight = UiComponentTextWeights.SemiBold,
-						Role = UiComponentTextRoles.Primary,
-						Color = Ink(onArtwork, ArtworkInk),
-						MaxLines = 1,
-						Fill = true
-					}
-				]
+				Children = children
 			};
 		}
 
@@ -263,7 +302,7 @@ internal static class FeedWidgetView
 					{
 						Key = "text",
 						Text = UiText.Optional(() => state.Value.Message),
-						Size = _text,
+						Size = BodyText,
 						Role = UiComponentTextRoles.Secondary,
 						Align = UiComponentAlignments.Center,
 						MaxLines = 4
@@ -280,17 +319,36 @@ internal static class FeedWidgetView
 				Direction = UiComponentDirections.Vertical,
 				Gap = _gap,
 				Fill = true,
+				Events = [UiEventHandler.On(UiComponentEvents.Swipe, swipe)],
 				Children =
 				[
 					new UiRepeat<FeedRow>
 					{
 						Key = "items",
-						Items = UiValue.From(() => state.Value.Rows),
+						Items = UiValue.From<IReadOnlyList<FeedRow>>(() => PageRows()),
 						KeySelector = row => row.Id,
 						Template = (row, _) => Row(row.Id)
 					}
 				]
 			};
+		}
+
+		private int PageCount()
+		{
+			var size = Math.Max(1, options.Count);
+			return Math.Max(1, (state.Value.Rows.Count + size - 1) / size);
+		}
+
+		private int CurrentPage()
+		{
+			return Math.Clamp(page.Value, 0, Math.Max(0, PageCount() - 1));
+		}
+
+		private List<FeedRow> PageRows()
+		{
+			var size = Math.Max(1, options.Count);
+			var current = CurrentPage();
+			return state.Value.Rows.Skip(current * size).Take(size).ToList();
 		}
 
 		public UiStack Featured()
@@ -324,7 +382,7 @@ internal static class FeedWidgetView
 			{
 				Key = "title",
 				Text = UiText.From(() => Current(state.Value, index.Value)?.Title),
-				Size = _featuredTitleText,
+				Size = FeaturedTitleText,
 				Weight = UiComponentTextWeights.SemiBold,
 				Role = UiComponentTextRoles.Primary,
 				Color = Ink(onArtwork, ArtworkInk),
@@ -339,7 +397,7 @@ internal static class FeedWidgetView
 			{
 				Key = "meta",
 				Text = UiText.From(() => Current(state.Value, index.Value)?.Meta),
-				Size = _smallText,
+				Size = SmallText,
 				Role = UiComponentTextRoles.Muted,
 				Color = Ink(onArtwork, ArtworkSecondaryInk),
 				MaxLines = 1
@@ -352,7 +410,7 @@ internal static class FeedWidgetView
 			{
 				Key = "description",
 				Text = UiText.From(() => Current(state.Value, index.Value)?.Description),
-				Size = _text,
+				Size = BodyText,
 				Role = UiComponentTextRoles.Secondary,
 				Color = Ink(onArtwork, ArtworkSecondaryInk),
 				MaxLines = 2,
@@ -399,8 +457,8 @@ internal static class FeedWidgetView
 						{
 							Key = "thumbnail",
 							Source = UiValue.Optional(() => Image(Find(id)?.Image)),
-							Size = _thumbnail,
-							MainSize = _thumbnail
+							Size = ThumbnailSize,
+							MainSize = ThumbnailSize
 						}
 					},
 					new UiStack
@@ -414,7 +472,7 @@ internal static class FeedWidgetView
 							{
 								Key = "title",
 								Text = UiText.From(() => Find(id)?.Title),
-								Size = _titleText,
+								Size = TitleText,
 								Weight = UiValue.From(() => Find(id)?.Unread == true
 									? UiComponentTextWeights.SemiBold
 									: UiComponentTextWeights.Regular),
@@ -426,7 +484,7 @@ internal static class FeedWidgetView
 							{
 								Key = "meta",
 								Text = UiText.From(() => Find(id)?.Meta),
-								Size = _smallText,
+								Size = SmallText,
 								Role = UiComponentTextRoles.Muted,
 								MaxLines = 1
 							},
@@ -438,7 +496,7 @@ internal static class FeedWidgetView
 								{
 									Key = "description",
 									Text = UiText.From(() => Find(id)?.Description),
-									Size = _smallText,
+									Size = SmallText,
 									Role = UiComponentTextRoles.Secondary,
 									MaxLines = 1
 								}

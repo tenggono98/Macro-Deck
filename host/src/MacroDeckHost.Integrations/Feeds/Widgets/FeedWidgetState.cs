@@ -110,7 +110,6 @@ internal static class FeedWidgetResolver
 	public static FeedWidgetState Resolve(
 		FeedWidgetOptions options,
 		IReadOnlyList<FeedSnapshot> feeds,
-		int take,
 		FeedDateFormat format,
 		Func<string, UiResource?> image)
 	{
@@ -159,7 +158,8 @@ internal static class FeedWidgetResolver
 		var rows = selected
 			.SelectMany(feed => feed.Items.Select(item => (Feed: feed, Item: item)))
 			.OrderByDescending(entry => entry.Item.Published ?? DateTimeOffset.MinValue)
-			.Take(Math.Max(1, take))
+			.Skip(Math.Max(0, options.Skip))
+			.Take(FeedWidgetTypes.MaxRows)
 			.Select(entry => Row(entry.Feed, entry.Item, showSource, format, image))
 			.ToList();
 
