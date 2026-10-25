@@ -20,6 +20,27 @@ internal sealed class FeedWidgetOptionsTests
 	}
 
 	[Test]
+	public void The_options_parse_host_open_settings()
+	{
+		var options = FeedWidgetOptions.Parse(FeedWidgetKind.List,
+			JsonSerializer.SerializeToElement(new
+			{
+				openTarget = "host",
+				hostBrowser = "firefox",
+				hostPrivate = true,
+				hostBrowserPath = @"C:\Program Files\Mozilla Firefox\firefox.exe"
+			}));
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(options.OpenTarget, Is.EqualTo(FeedWidgetTypes.HostTarget));
+			Assert.That(options.HostBrowser, Is.EqualTo("firefox"));
+			Assert.That(options.HostPrivate, Is.True);
+			Assert.That(options.HostBrowserPath, Is.EqualTo(@"C:\Program Files\Mozilla Firefox\firefox.exe"));
+		});
+	}
+
+	[Test]
 	public void The_options_clamp_skip_and_scales_to_their_limits()
 	{
 		var options = FeedWidgetOptions.Parse(FeedWidgetKind.List,

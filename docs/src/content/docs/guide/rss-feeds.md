@@ -59,6 +59,8 @@ shows more than one feed. Choose in its settings:
 - **Show description** and **Show images**: whether each article shows the start of its text and a small
   image, when the feed has one.
 - **Next page after (seconds)**: move to the next page by itself; 0 keeps the page where it is.
+- **Open links on** and **Browser on this computer**: where an article opens and which host browser
+  handles it, see [Opening on the computer](#opening-on-the-computer).
 - **When tapped**: what tapping an article does, see [Tapping an article](#tapping-an-article).
 
 Swipe the list up or down to move between pages. The header shows the current page, the page count and the
@@ -91,6 +93,25 @@ adding more widgets does not add requests to the feed.
 - **Show details**: a dialog with the image, title, author, date, description and address, and an **Open**
   button that opens the article on that device.
 - **Run the widget's actions only**: nothing opens; only the widget's actions run.
+
+With **Open links on: This computer**, the first two choices use the computer instead of the tapped
+device. See [Opening on the computer](#opening-on-the-computer).
+
+### Opening on the computer
+
+**Open links on** chooses where an article opens. **This device** keeps the old behaviour: the browser of
+the device you tapped, for example your phone with the web client. **This computer** opens it on the
+computer running Macro Deck.
+
+When **This computer** is selected, **Browser on this computer** offers the default browser and the
+browsers Macro Deck found installed, plus **Other browser** with the path to any browser executable.
+**Private window** opens a private or incognito window where the browser supports it, for example Firefox
+Private Browsing or Microsoft Edge InPrivate.
+
+A normal link focuses the browser if it is already running and opens a new tab; if it is not running,
+Macro Deck starts it with the link. With **Show details** and **This computer**, the details dialog closes
+after **Open** and the computer opens the link. If the browser cannot start, the device shows a failure
+message.
 
 With every choice, a tap marks the article as read and fires the **Feed article opened** trigger. To run
 actions for the tapped article, open the widget's actions, add a **Feed article opened** trigger and leave

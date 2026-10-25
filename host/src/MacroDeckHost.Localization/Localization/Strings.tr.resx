@@ -24959,6 +24959,42 @@ Macro Deck web sitesinden indirin ve yüklediğiniz AppImage, DEB veya RPM dosya
   <data name="Widgets.Feeds.Config.PageSecondsDescription" xml:space="preserve">
     <value>0 keeps the first page.</value>
   </data>
+  <data name="Widgets.Feeds.Config.OpenTarget" xml:space="preserve">
+    <value>Open links on</value>
+  </data>
+  <data name="Widgets.Feeds.Config.OpenTargetDescription" xml:space="preserve">
+    <value>Choose whether an article opens on the device that tapped it or on the computer running Macro Deck.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.OpenTargetClient" xml:space="preserve">
+    <value>This device</value>
+  </data>
+  <data name="Widgets.Feeds.Config.OpenTargetHost" xml:space="preserve">
+    <value>This computer</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowser" xml:space="preserve">
+    <value>Browser on this computer</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowserDescription" xml:space="preserve">
+    <value>The browser the computer uses for the link.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowserDefault" xml:space="preserve">
+    <value>Default browser</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowserCustom" xml:space="preserve">
+    <value>Other browser</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowserPath" xml:space="preserve">
+    <value>Browser executable</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostBrowserPathDescription" xml:space="preserve">
+    <value>Select the browser application to start.</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostPrivate" xml:space="preserve">
+    <value>Private window</value>
+  </data>
+  <data name="Widgets.Feeds.Config.HostPrivateDescription" xml:space="preserve">
+    <value>Open the link in a private or incognito window.</value>
+  </data>
   <data name="Widgets.Feeds.Config.FeaturedCount" xml:space="preserve">
     <value>Dönüşümlü gösterilecek yazılar</value>
   </data>

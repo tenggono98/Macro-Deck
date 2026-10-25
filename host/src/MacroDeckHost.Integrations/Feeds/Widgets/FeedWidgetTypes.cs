@@ -37,6 +37,14 @@ internal static class FeedWidgetTypes
 
 	public const string ImageScaleKey = "imageScale";
 
+	public const string OpenTargetKey = "openTarget";
+
+	public const string HostBrowserKey = "hostBrowser";
+
+	public const string HostPrivateKey = "hostPrivate";
+
+	public const string HostBrowserPathKey = "hostBrowserPath";
+
 	public const string ShowDescriptionKey = "showDescription";
 
 	public const string ShowThumbnailKey = "showThumbnail";
@@ -61,6 +69,14 @@ internal static class FeedWidgetTypes
 
 	public const string FlowsTap = "flows";
 
+	public const string ClientTarget = "client";
+
+	public const string HostTarget = "host";
+
+	public const string DefaultBrowser = "default";
+
+	public const string CustomBrowser = "custom";
+
 	public const int MaxCount = 10;
 
 	public const int MaxCycleSeconds = 3600;
@@ -84,6 +100,8 @@ internal static class FeedWidgetTypes
 
 	public static IReadOnlyList<string> Taps { get; } = [OpenTap, DialogTap, FlowsTap];
 
+	public static IReadOnlyList<string> Targets { get; } = [ClientTarget, HostTarget];
+
 	public static string QualifiedId(FeedWidgetKind kind)
 	{
 		return kind == FeedWidgetKind.List ? ListQualifiedId : FeaturedQualifiedId;
@@ -99,6 +117,10 @@ internal static class FeedWidgetTypes
 			[SkipKey] = 0,
 			[TextScaleKey] = 100,
 			[ImageScaleKey] = 100,
+			[OpenTargetKey] = ClientTarget,
+			[HostBrowserKey] = DefaultBrowser,
+			[HostPrivateKey] = false,
+			[HostBrowserPathKey] = string.Empty,
 			[ShowDescriptionKey] = defaults.ShowDescription,
 			[ShowThumbnailKey] = defaults.ShowThumbnail,
 			[CycleSecondsKey] = defaults.CycleSeconds,
@@ -120,6 +142,10 @@ internal static class FeedWidgetTypes
 				[SkipKey] = new { type = "number", minimum = 0, maximum = MaxSkip },
 				[TextScaleKey] = new { type = "number", minimum = MinTextScale, maximum = MaxTextScale },
 				[ImageScaleKey] = new { type = "number", minimum = MinImageScale, maximum = MaxImageScale },
+				[OpenTargetKey] = new { type = "string", @enum = Targets },
+				[HostBrowserKey] = new { type = "string" },
+				[HostPrivateKey] = new { type = "boolean" },
+				[HostBrowserPathKey] = new { type = "string" },
 				[ShowDescriptionKey] = new { type = "boolean" },
 				[ShowThumbnailKey] = new { type = "boolean" },
 				[CycleSecondsKey] = new { type = "number", minimum = 0, maximum = MaxCycleSeconds },

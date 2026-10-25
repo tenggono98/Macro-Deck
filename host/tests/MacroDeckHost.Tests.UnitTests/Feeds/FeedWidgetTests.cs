@@ -120,6 +120,27 @@ internal sealed class FeedWidgetTests
 	}
 
 	[Test]
+	public async Task The_details_dialog_offers_a_host_open_answer()
+	{
+		var origin = new RecordingOrigin();
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { tap = "dialog", openTarget = "host" });
+
+		Tap(session, origin);
+		await CalendarTree.WaitForAsync(() => origin.Modals.Count == 1, "no dialog was opened");
+
+		await using var dialog = await OpenDialogAsync(origin.Modals.Single());
+		var open = CalendarTree.Get(dialog.BuildTree().Root, "open");
+		var answer = open.Properties[UiComponentProperties.Answer];
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(answer.ValueKind, Is.EqualTo(JsonValueKind.String));
+			Assert.That(answer.GetString(), Is.EqualTo(FeedArticleDialog.OpenAnswer));
+		});
+	}
+
+	[Test]
 	public async Task The_list_pages_on_swipe()
 	{
 		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId, new { count = 1 });
@@ -401,6 +422,8 @@ internal sealed class FeedWidgetTests
 			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.TextScaleKey));
 			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.ImageScaleKey));
 			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.CycleSecondsKey));
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.OpenTargetKey));
+			Assert.That(nodes, Has.Some.EndsWith(FeedWidgetTypes.HostBrowserKey));
 		});
 	}
 

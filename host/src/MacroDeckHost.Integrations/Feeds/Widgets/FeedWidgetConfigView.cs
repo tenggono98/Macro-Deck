@@ -26,8 +26,13 @@ internal static class FeedWidgetConfigView
 		var showThumbnail = new UiState<bool>(options.ShowThumbnail);
 		var cycleSeconds = new UiState<double>(options.CycleSeconds);
 		var tap = new UiState<string>(options.Tap);
+		var openTarget = new UiState<string>(options.OpenTarget);
+		var hostBrowser = new UiState<string>(options.HostBrowser);
+		var hostPrivate = new UiState<bool>(options.HostPrivate);
+		var hostBrowserPath = new UiState<string>(options.HostBrowserPath ?? string.Empty);
 		var flows = new UiState<JsonElement>(FeedWidgetOptions.ReadFlows(data));
 
+		var browsers = HostBrowsers.Detect();
 		var groups = feeds.Select(candidate => candidate.Group)
 			.OfType<string>()
 			.Distinct(StringComparer.OrdinalIgnoreCase)
@@ -172,6 +177,80 @@ internal static class FeedWidgetConfigView
 				UiOption.Of(FeedWidgetTypes.FlowsTap, Strings.Config.TapFlows())
 			])
 		});
+		children.Add(new UiChoiceInput
+		{
+			Key = FeedWidgetTypes.OpenTargetKey,
+			Label = Strings.Config.OpenTarget(),
+			Description = Strings.Config.OpenTargetDescription(),
+			Binding = Bind.To(openTarget),
+			Options = UiValue.Of<IReadOnlyList<UiOption>>([
+				UiOption.Of(FeedWidgetTypes.ClientTarget, Strings.Config.OpenTargetClient()),
+				UiOption.Of(FeedWidgetTypes.HostTarget, Strings.Config.OpenTargetHost())
+			])
+		});
+
+		var browserOptions = new List<UiOption>
+		{
+			UiOption.Of(FeedWidgetTypes.DefaultBrowser, Strings.Config.HostBrowserDefault())
+		};
+		browserOptions.AddRange(browsers.Select(browser => UiOption.Of(browser.Id, browser.Name)));
+		browserOptions.Add(UiOption.Of(FeedWidgetTypes.CustomBrowser, Strings.Config.HostBrowserCustom()));
+		if (options.HostBrowser is not (FeedWidgetTypes.DefaultBrowser or FeedWidgetTypes.CustomBrowser)
+			&& browsers.All(browser => browser.Id != options.HostBrowser))
+		{
+			browserOptions.Add(UiOption.Of(options.HostBrowser, options.HostBrowser));
+		}
+
+		children.Add(new UiChoiceInput
+		{
+			Key = FeedWidgetTypes.HostBrowserKey,
+			Label = Strings.Config.HostBrowser(),
+			Description = Strings.Config.HostBrowserDescription(),
+			Binding = Bind.To(hostBrowser),
+			Options = UiValue.Of<IReadOnlyList<UiOption>>(browserOptions),
+			VisibleWhen = new UiVisibleWhen
+			{
+				ParameterName = FeedWidgetTypes.OpenTargetKey,
+				Values = [FeedWidgetTypes.HostTarget],
+				SiblingValue = () => openTarget.Value
+			}
+		});
+		children.Add(new UiFileInput
+		{
+			Key = FeedWidgetTypes.HostBrowserPathKey,
+			Label = Strings.Config.HostBrowserPath(),
+			Description = Strings.Config.HostBrowserPathDescription(),
+			Binding = Bind.To(hostBrowserPath),
+			FileExtensions = UiValue.Of<IReadOnlyList<string>>(["exe"]),
+			VisibleWhen = new UiVisibleWhen
+			{
+				ParameterName = FeedWidgetTypes.HostBrowserKey,
+				Values = [FeedWidgetTypes.CustomBrowser],
+				SiblingValue = () => hostBrowser.Value
+			}
+		});
+
+		var privateBrowsers = browsers
+			.Where(browser => browser.SupportsPrivate)
+			.Select(browser => browser.Id)
+			.ToList();
+		if (privateBrowsers.Count > 0)
+		{
+			children.Add(new UiBooleanInput
+			{
+				Key = FeedWidgetTypes.HostPrivateKey,
+				Label = Strings.Config.HostPrivate(),
+				Description = Strings.Config.HostPrivateDescription(),
+				Binding = Bind.To(hostPrivate),
+				VisibleWhen = new UiVisibleWhen
+				{
+					ParameterName = FeedWidgetTypes.HostBrowserKey,
+					Values = privateBrowsers,
+					SiblingValue = () => hostBrowser.Value
+				}
+			});
+		}
+
 		children.Add(UiWidgetAppearance.Section(data,
 			UiWidgetAppearanceFields.Border
 			| UiWidgetAppearanceFields.BackgroundColor

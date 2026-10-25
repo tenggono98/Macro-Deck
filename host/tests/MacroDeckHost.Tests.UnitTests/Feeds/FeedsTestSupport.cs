@@ -358,6 +358,11 @@ internal sealed class RecordingOrigin : IUiEventOrigin
 
 	public Task<ModalResult<T>> ShowModalAsync<T>(ModalDefinition modal, CancellationToken cancellationToken = default)
 	{
+		lock (_sync)
+		{
+			_modals.Add(modal);
+		}
+
 		return Task.FromResult(ModalResult.FromCancellation<T>());
 	}
 

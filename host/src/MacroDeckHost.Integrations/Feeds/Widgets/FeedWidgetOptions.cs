@@ -27,6 +27,14 @@ internal sealed record FeedWidgetOptions
 
 	public string Tap { get; init; } = FeedWidgetTypes.OpenTap;
 
+	public string OpenTarget { get; init; } = FeedWidgetTypes.ClientTarget;
+
+	public string HostBrowser { get; init; } = FeedWidgetTypes.DefaultBrowser;
+
+	public bool HostPrivate { get; init; }
+
+	public string? HostBrowserPath { get; init; }
+
 	public static FeedWidgetOptions Defaults(FeedWidgetKind kind)
 	{
 		return kind == FeedWidgetKind.List
@@ -66,7 +74,18 @@ internal sealed record FeedWidgetOptions
 			Tap = ReadString(data, FeedWidgetTypes.TapKey) is { } tap
 				&& FeedWidgetTypes.Taps.Contains(tap, StringComparer.Ordinal)
 					? tap
-					: FeedWidgetTypes.OpenTap
+					: FeedWidgetTypes.OpenTap,
+			OpenTarget = ReadString(data, FeedWidgetTypes.OpenTargetKey) is { } target
+				&& FeedWidgetTypes.Targets.Contains(target, StringComparer.Ordinal)
+					? target
+					: FeedWidgetTypes.ClientTarget,
+			HostBrowser = ReadString(data, FeedWidgetTypes.HostBrowserKey)?.Trim() is { Length: > 0 } browser
+				? browser
+				: FeedWidgetTypes.DefaultBrowser,
+			HostPrivate = ReadBool(data, FeedWidgetTypes.HostPrivateKey) ?? false,
+			HostBrowserPath = ReadString(data, FeedWidgetTypes.HostBrowserPathKey)?.Trim() is { Length: > 0 } path
+				? path
+				: null
 		};
 	}
 

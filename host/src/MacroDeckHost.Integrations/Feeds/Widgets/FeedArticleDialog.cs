@@ -28,6 +28,10 @@ internal static class FeedArticleDialog
 
 	public const string CultureKey = "culture";
 
+	public const string HostOpenKey = "hostOpen";
+
+	public const string OpenAnswer = "open";
+
 	private const string Separator = " · ";
 
 	private static readonly ILogger _logger = IntegrationLog.For<FeedDialogContent>(FeedsIntegration.IntegrationId);
@@ -63,7 +67,8 @@ internal static class FeedArticleDialog
 					.Where(part => part.Length > 0));
 
 		var content = new FeedDialogContent(item, meta, item?.ImageUrl is { } imageUrl ? images.Find(imageUrl) : null);
-		var canOpen = new UiState<bool>(url is not null && ReadBool(data, CanOpenKey));
+		var hostOpen = ReadBool(data, HostOpenKey);
+		var canOpen = new UiState<bool>(url is not null && (hostOpen || ReadBool(data, CanOpenKey)));
 		var feedback = new UiState<LocalizedText>(default);
 
 		UiViewSession? session = null;
@@ -73,6 +78,7 @@ internal static class FeedArticleDialog
 				url?.AbsoluteUri,
 				canOpen,
 				feedback,
+				hostOpen,
 				() => _ = OpenAsync(session?.Origin, url, view!, canOpen, feedback)));
 		session = new UiViewSession(view);
 		return session;
@@ -117,6 +123,7 @@ internal static class FeedArticleDialog
 		string? url,
 		UiState<bool> canOpen,
 		UiState<LocalizedText> feedback,
+		bool hostOpen,
 		Action open)
 	{
 		if (content.Item is not { } item)
@@ -181,7 +188,7 @@ internal static class FeedArticleDialog
 			{
 				Key = "openGate",
 				Condition = () => canOpen.Value,
-				Content = () => OpenButton(open)
+				Content = () => OpenButton(open, hostOpen)
 			});
 		}
 
@@ -208,7 +215,7 @@ internal static class FeedArticleDialog
 		};
 	}
 
-	private static UiButton OpenButton(Action open)
+	private static UiButton OpenButton(Action open, bool hostOpen)
 	{
 		return new UiButton
 		{
@@ -218,7 +225,10 @@ internal static class FeedArticleDialog
 			Align = UiComponentAlignments.Center,
 			Gap = _gap,
 			Padding = _gap,
-			Events = [UiEventHandler.On(UiComponentEvents.Press, open)],
+			Answer = hostOpen ? UiValue.Of(OpenAnswer) : default,
+			Events = hostOpen
+				? [UiEventHandler.On(UiComponentEvents.Press, () => { })]
+				: [UiEventHandler.On(UiComponentEvents.Press, open)],
 			Children =
 			[
 				new UiIcon { Key = "icon", Icon = UiIcons.ExternalLink, Size = _icon, MainSize = _icon },
