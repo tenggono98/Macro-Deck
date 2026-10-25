@@ -83,6 +83,43 @@ internal sealed class FeedWidgetTests
 	}
 
 	[Test]
+	public async Task The_list_reports_the_total_number_of_articles()
+	{
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { count = 1, skip = 1 });
+
+		var texts = CalendarTree.Texts(session.BuildTree().Root);
+
+		Assert.That(texts, Does.Contain("· 2"));
+	}
+
+	[Test]
+	public async Task The_list_configuration_reports_the_total_article_count()
+	{
+		await using var session = (await _integration.CreateSessionAsync(new UiSessionRequest
+			{
+				Surface = new UiSurface
+				{
+					Kind = UiSurfaceKinds.Config,
+					SessionMode = UiSessionModes.Exclusive,
+					Attributes = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+					{
+						[UiConfigSurfaceAttributes.EntryPoint]
+							= JsonSerializer.SerializeToElement(UiConfigEntryPoints.WidgetConfig),
+						[UiConfigSurfaceAttributes.WidgetType]
+							= JsonSerializer.SerializeToElement(FeedWidgetTypes.ListQualifiedId)
+					}
+				},
+				UiModelVersion = 1
+			},
+			CancellationToken.None))!;
+
+		var texts = CalendarTree.Texts(session.BuildTree().Root);
+
+		Assert.That(texts, Does.Contain("Total articles: 2"));
+	}
+
+	[Test]
 	public async Task The_list_pages_on_swipe()
 	{
 		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId, new { count = 1 });

@@ -52,6 +52,8 @@ shows more than one feed. Choose in its settings:
 
 - **Show**: **All feeds**, **One feed** or **One group**, and which feed or group.
 - **Articles**: how many articles each page shows, up to 10.
+- **Total articles**: the number of articles the selected feed, group or all feeds holds. It is read
+  from the stored feed data and includes articles hidden by **Start at article**.
 - **Start at article**: how many of the newest articles to skip before the first page.
 - **Text size** and **Image size**: scale the article text and the small images, as a percentage.
 - **Show description** and **Show images**: whether each article shows the start of its text and a small
@@ -59,9 +61,9 @@ shows more than one feed. Choose in its settings:
 - **Next page after (seconds)**: move to the next page by itself; 0 keeps the page where it is.
 - **When tapped**: what tapping an article does, see [Tapping an article](#tapping-an-article).
 
-Swipe the list up or down to move between pages. The counter in the header shows the current page and how
-many there are. Articles that arrived since you added the feed and that you have not tapped yet are shown
-in bold.
+Swipe the list up or down to move between pages. The header shows the current page, the page count and the
+total article count, for example `1/2 · 10`; the total is the raw count for the selected source. Articles
+that arrived since you added the feed and that you have not tapped yet are shown in bold.
 
 ## The Featured Article widget
 

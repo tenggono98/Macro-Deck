@@ -28,9 +28,13 @@ internal sealed record FeedRow(string Id, Guid EntryId, string Key, string Title
 	public bool Unread { get; init; }
 }
 
-internal sealed record FeedWidgetState(FeedWidgetStatus Status, LocalizedText Heading, IReadOnlyList<FeedRow> Rows)
+internal sealed record FeedWidgetState(
+	FeedWidgetStatus Status,
+	LocalizedText Heading,
+	IReadOnlyList<FeedRow> Rows,
+	int TotalArticles)
 {
-	public static readonly FeedWidgetState Empty = new(FeedWidgetStatus.NoFeeds, default, []);
+	public static readonly FeedWidgetState Empty = new(FeedWidgetStatus.NoFeeds, default, [], 0);
 
 	public LocalizedText Message => Status switch
 	{
@@ -46,12 +50,13 @@ internal sealed record FeedWidgetState(FeedWidgetStatus Status, LocalizedText He
 		return other is not null
 			&& Status == other.Status
 			&& Heading.Equals(other.Heading)
+			&& TotalArticles == other.TotalArticles
 			&& Rows.SequenceEqual(other.Rows);
 	}
 
 	public override int GetHashCode()
 	{
-		return HashCode.Combine(Status, Rows.Count);
+		return HashCode.Combine(Status, Rows.Count, TotalArticles);
 	}
 }
 
@@ -130,7 +135,7 @@ internal static class FeedWidgetResolver
 			case FeedWidgetTypes.FeedSource when options.FeedId is { } feedId:
 				if (feeds.FirstOrDefault(feed => feed.EntryId == feedId) is not { } match)
 				{
-					return new FeedWidgetState(FeedWidgetStatus.FeedMissing, default, []);
+					return new FeedWidgetState(FeedWidgetStatus.FeedMissing, default, [], 0);
 				}
 
 				selected = [match];
@@ -143,7 +148,7 @@ internal static class FeedWidgetResolver
 				];
 				if (selected.Count == 0)
 				{
-					return new FeedWidgetState(FeedWidgetStatus.GroupEmpty, group, []);
+					return new FeedWidgetState(FeedWidgetStatus.GroupEmpty, group, [], 0);
 				}
 
 				heading = group;
@@ -154,6 +159,7 @@ internal static class FeedWidgetResolver
 				break;
 		}
 
+		var totalArticles = selected.Sum(feed => feed.Items.Count);
 		var showSource = selected.Count > 1;
 		var rows = selected
 			.SelectMany(feed => feed.Items.Select(item => (Feed: feed, Item: item)))
@@ -163,7 +169,11 @@ internal static class FeedWidgetResolver
 			.Select(entry => Row(entry.Feed, entry.Item, showSource, format, image))
 			.ToList();
 
-		return new FeedWidgetState(rows.Count == 0 ? FeedWidgetStatus.NoArticles : FeedWidgetStatus.Ok, heading, rows);
+		return new FeedWidgetState(
+			rows.Count == 0 ? FeedWidgetStatus.NoArticles : FeedWidgetStatus.Ok,
+			heading,
+			rows,
+			totalArticles);
 	}
 
 	// Item keys can hold any character of a link, so the node key is a hash of it.

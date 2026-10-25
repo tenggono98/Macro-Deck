@@ -92,6 +92,11 @@ internal static class FeedWidgetConfigView
 				Max = FeedWidgetTypes.MaxCount,
 				Step = 1
 			},
+			new UiProse
+			{
+				Key = "totalArticles",
+				Text = UiText.From(() => $"Total articles: {TotalArticles(feeds, source.Value, feed.Value, group.Value)}")
+			},
 			new UiNumberInput
 			{
 				Key = FeedWidgetTypes.SkipKey,
@@ -190,5 +195,28 @@ internal static class FeedWidgetConfigView
 				]
 			}
 		};
+	}
+
+	private static int TotalArticles(
+		IReadOnlyList<FeedSnapshot> feeds,
+		string source,
+		string feed,
+		string group)
+	{
+		if (source == FeedWidgetTypes.FeedSource)
+		{
+			return Guid.TryParse(feed, out var feedId)
+				? feeds.Where(candidate => candidate.EntryId == feedId).Sum(candidate => candidate.Items.Count)
+				: 0;
+		}
+
+		if (source == FeedWidgetTypes.GroupSource)
+		{
+			return feeds
+				.Where(candidate => string.Equals(candidate.Group, group, StringComparison.OrdinalIgnoreCase))
+				.Sum(candidate => candidate.Items.Count);
+		}
+
+		return feeds.Sum(candidate => candidate.Items.Count);
 	}
 }

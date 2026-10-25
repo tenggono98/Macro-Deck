@@ -128,7 +128,8 @@ internal sealed class FeedsUiProvider : IUiProvider
 				{
 					Description = description
 				}
-			]);
+			],
+			3);
 	}
 
 	internal static async Task<UiResource?> IconAsync(

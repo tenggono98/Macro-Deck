@@ -275,6 +275,20 @@ internal static class FeedWidgetView
 						Digits = 4
 					}
 				});
+				children.Add(new UiWhen
+				{
+					Key = "totalGate",
+					Condition = () => state.Value.TotalArticles > 0,
+					Content = () => new UiTextRun
+					{
+						Key = "total",
+						Text = UiText.From(() => $"· {state.Value.TotalArticles}"),
+						Size = _pageText,
+						Role = UiComponentTextRoles.Muted,
+						MaxLines = 1,
+						Digits = 3
+					}
+				});
 			}
 
 			return new UiStack
