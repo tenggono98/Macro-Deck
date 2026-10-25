@@ -91,6 +91,22 @@ Macro Deck code, documentation and assets, used under the Apache License 2.0.
   private modes. The host-open path is wired into the installed build; tap an article with host
   mode selected to verify the browser and the dialog close on your machine.
 
+## Automatic build and install
+
+Run `Update-MacroDeck.cmd` from the repository root, or run
+`tools\Update-MacroDeck.ps1` from PowerShell. The script:
+
+- builds Release with warnings as errors;
+- runs the Feeds tests;
+- publishes the Production `win-x64` host;
+- backs up the current data and the installed custom host;
+- installs the new host as `MacroDeckHostCustom.exe`;
+- restarts Macro Deck and waits for the host to become ready.
+
+Use `-SkipTests` for a faster update, or `-BuildOnly` to stop after publishing. The script is
+Windows-only because this custom host setup is Windows-only. Backups and the update log are under
+`%LOCALAPPDATA%\MacroDeckCustomBuild`.
+
 ## Build
 
 This is a source fork, not a separate installer or release. Use the upstream project's setup and
