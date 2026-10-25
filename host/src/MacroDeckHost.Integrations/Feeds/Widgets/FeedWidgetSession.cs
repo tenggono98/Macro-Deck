@@ -135,15 +135,30 @@ internal sealed class FeedWidgetSession : IUiSession
 		return ValueTask.CompletedTask;
 	}
 
-	internal static ModalDefinition Dialog(FeedRow row, string? culture, bool canOpen, bool hostOpen)
+	internal static ModalDefinition Dialog(
+		IReadOnlyList<FeedRow> rows,
+		int index,
+		string? culture,
+		bool hostOpen,
+		bool canOpen)
 	{
+		var entries = rows
+			.Select(row => new { entry = row.EntryId.ToString("D"), item = row.Key })
+			.ToList();
 		var data = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
 		{
-			[FeedArticleDialog.EntryKey] = JsonSerializer.SerializeToElement(row.EntryId.ToString("D")),
-			[FeedArticleDialog.ItemKey] = JsonSerializer.SerializeToElement(row.Key),
-			[FeedArticleDialog.CanOpenKey] = JsonSerializer.SerializeToElement(canOpen),
-			[FeedArticleDialog.HostOpenKey] = JsonSerializer.SerializeToElement(hostOpen)
+			[FeedArticleDialog.EntriesKey] = JsonSerializer.SerializeToElement(entries),
+			[FeedArticleDialog.IndexKey] = JsonSerializer.SerializeToElement(
+				Math.Clamp(index, 0, Math.Max(0, rows.Count - 1))),
+			[FeedArticleDialog.HostOpenKey] = JsonSerializer.SerializeToElement(hostOpen),
+			[FeedArticleDialog.CanOpenKey] = JsonSerializer.SerializeToElement(canOpen)
 		};
+
+		if (rows.Count > 0)
+		{
+			data[FeedArticleDialog.EntryKey] = JsonSerializer.SerializeToElement(rows[0].EntryId.ToString("D"));
+			data[FeedArticleDialog.ItemKey] = JsonSerializer.SerializeToElement(rows[0].Key);
+		}
 
 		if (culture is not null)
 		{
@@ -195,13 +210,32 @@ internal sealed class FeedWidgetSession : IUiSession
 			? parsed
 			: null;
 		var hostOpen = _options.OpenTarget == FeedWidgetTypes.HostTarget;
+		var rows = _state.Value.Rows;
+		var index = 0;
+		for (; index < rows.Count; index++)
+		{
+			if (rows[index].Id == row.Id)
+			{
+				break;
+			}
+		}
+
+		if (index >= rows.Count)
+		{
+			index = 0;
+		}
+
 		_ = _options.Tap == FeedWidgetTypes.OpenTap && url is not null
-			? OpenAsync(origin, row, url)
-			: ShowDialogAsync(origin, row, url, url is not null, hostOpen);
+			? OpenAsync(origin, rows, index, url)
+			: ShowDialogAsync(origin, rows, index, hostOpen, true);
 		return UiEventOutcome.Accepted;
 	}
 
-	private async Task OpenAsync(IUiEventOrigin origin, FeedRow row, Uri url)
+	private async Task OpenAsync(
+		IUiEventOrigin origin,
+		IReadOnlyList<FeedRow> rows,
+		int index,
+		Uri url)
 	{
 		if (_options.OpenTarget == FeedWidgetTypes.HostTarget)
 		{
@@ -227,25 +261,26 @@ internal sealed class FeedWidgetSession : IUiSession
 			_logger.Warning(exception, "Opening a feed article on client {ClientId} failed", origin.ClientId);
 		}
 
-		await ShowDialogAsync(origin, row, url, false, false).ConfigureAwait(false);
+		await ShowDialogAsync(origin, rows, index, false, false).ConfigureAwait(false);
 	}
 
 	private async Task ShowDialogAsync(
 		IUiEventOrigin origin,
-		FeedRow row,
-		Uri? url,
-		bool canOpen,
-		bool hostOpen)
+		IReadOnlyList<FeedRow> rows,
+		int index,
+		bool hostOpen,
+		bool canOpen)
 	{
 		try
 		{
 			if (hostOpen)
 			{
-				var result = await origin.ShowModalAsync<string>(Dialog(row, _cultureName, canOpen, true)).ConfigureAwait(false);
+				var result = await origin.ShowModalAsync<string>(Dialog(rows, index, _cultureName, true, canOpen)).ConfigureAwait(false);
 				if (!result.Cancelled
-					&& string.Equals(result.Value, FeedArticleDialog.OpenAnswer, StringComparison.Ordinal)
-					&& url is not null
-					&& !HostBrowsers.Open(url, _options.HostBrowser, _options.HostPrivate, _options.HostBrowserPath))
+					&& result.Value is { Length: > 0 } answer
+					&& Uri.TryCreate(answer, UriKind.Absolute, out var target)
+					&& FeedClient.IsWebUrl(target)
+					&& !HostBrowsers.Open(target, _options.HostBrowser, _options.HostPrivate, _options.HostBrowserPath))
 				{
 					await origin.ReportFailureAsync(Strings.Dialog.CannotOpen()).ConfigureAwait(false);
 				}
@@ -253,7 +288,7 @@ internal sealed class FeedWidgetSession : IUiSession
 				return;
 			}
 
-			if (!await origin.ShowModalAsync(Dialog(row, _cultureName, canOpen, false)).ConfigureAwait(false))
+			if (!await origin.ShowModalAsync(Dialog(rows, index, _cultureName, false, canOpen)).ConfigureAwait(false))
 			{
 				_logger.Debug("The feed article dialog could not be opened on client {ClientId}", origin.ClientId);
 			}

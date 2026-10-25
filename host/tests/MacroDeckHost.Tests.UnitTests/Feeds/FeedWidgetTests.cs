@@ -132,11 +132,42 @@ internal sealed class FeedWidgetTests
 		await using var dialog = await OpenDialogAsync(origin.Modals.Single());
 		var open = CalendarTree.Get(dialog.BuildTree().Root, "open");
 		var answer = open.Properties[UiComponentProperties.Answer];
+		var answerText = answer.GetString();
 
 		Assert.Multiple(() =>
 		{
 			Assert.That(answer.ValueKind, Is.EqualTo(JsonValueKind.String));
-			Assert.That(answer.GetString(), Is.EqualTo(FeedArticleDialog.OpenAnswer));
+			Assert.That(answerText, Is.Not.Null);
+			Assert.That(answerText, Does.StartWith("https://"));
+			Assert.That(answerText, Is.Not.EqualTo("open"));
+		});
+	}
+
+	[Test]
+	public async Task The_details_dialog_moves_to_the_next_article_without_closing()
+	{
+		var origin = new RecordingOrigin();
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { tap = "dialog" });
+
+		Tap(session, origin);
+		await CalendarTree.WaitForAsync(() => origin.Modals.Count == 1, "no dialog was opened");
+
+		await using var dialog = await OpenDialogAsync(origin.Modals.Single());
+		var before = CalendarTree.Texts(dialog.BuildTree().Root);
+		var next = CalendarTree.Get(dialog.BuildTree().Root, "next");
+
+		dialog.Dispatch(new UiEvent { NodeId = next.Id, Name = UiComponentEvents.Press });
+
+		var after = CalendarTree.Texts(dialog.BuildTree().Root);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(before, Does.Contain("1 / 2"));
+			Assert.That(before, Does.Contain("Second"));
+			Assert.That(after, Does.Contain("2 / 2"));
+			Assert.That(after, Does.Contain("First"));
+			Assert.That(after, Does.Not.Contain("Second"));
 		});
 	}
 

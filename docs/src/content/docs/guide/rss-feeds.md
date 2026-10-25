@@ -91,7 +91,9 @@ adding more widgets does not add requests to the feed.
   open links, for example a hardware deck or an older Companion app, Macro Deck shows the details instead,
   with the address so you can copy it.
 - **Show details**: a dialog with the image, title, author, date, description and address, and an **Open**
-  button that opens the article on that device.
+  button that opens the article on that device. The dialog shows the article's position in the widget's
+  list, for example `3 / 9`, with previous and next buttons that swap the article in place without closing
+  the dialog.
 - **Run the widget's actions only**: nothing opens; only the widget's actions run.
 
 With **Open links on: This computer**, the first two choices use the computer instead of the tapped
@@ -110,8 +112,9 @@ Private Browsing or Microsoft Edge InPrivate.
 
 A normal link focuses the browser if it is already running and opens a new tab; if it is not running,
 Macro Deck starts it with the link. With **Show details** and **This computer**, the details dialog closes
-after **Open** and the computer opens the link. If the browser cannot start, the device shows a failure
-message.
+after **Open** and the computer opens the article currently shown. If the browser cannot start, the device
+shows a failure message. The position counter and the previous/next buttons count the articles the widget
+has after **Start at article**.
 
 With every choice, a tap marks the article as read and fires the **Feed article opened** trigger. To run
 actions for the tapped article, open the widget's actions, add a **Feed article opened** trigger and leave

@@ -72,9 +72,17 @@ Macro Deck code, documentation and assets, used under the Apache License 2.0.
   open after opening on the tapped device.
 - If the host browser cannot start, the device shows a failure message.
 
+### Details dialog navigation
+
+- The article details dialog shows the current position in the widget's list, for example `3 / 9`.
+- Previous and next buttons swap the article in place without closing and reopening the dialog.
+- The position counts the list after **Start at article**.
+- In host mode, **Open** uses the article currently shown and closes the dialog before launching the
+  browser.
+
 ## Validation
 
-- Feed tests: 84 passed.
+- Feed tests: 85 passed.
 - Shipped localization catalog tests: 20 passed.
 - Full solution build with warnings as errors: 0 warnings, 0 errors.
 - Browser command-line argument tests for Firefox, Microsoft Edge and Chrome, for normal and
