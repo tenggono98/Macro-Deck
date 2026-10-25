@@ -1,8 +1,8 @@
-<p align="center">
-  <img src="https://assets.macro-deck.app/branding/Macro%20Deck%20Icon.svg" alt="Macro Deck" width="180" />
-</p>
-
 # Macro Deck
+
+> **Unofficial personal fork.** This repository is a fork of [Macro Deck](https://github.com/Macro-Deck-App/Macro-Deck), originally created by Manuel Mayer and the Macro Deck Contributors. It is not affiliated with, endorsed by, or supported by the original project. The Macro Deck name, logo and branding assets belong to the original project and are not licensed under Apache-2.0. The original logo was removed from this fork's README to respect that. See [FORK.md](FORK.md) for the features added here, the attribution notes and the commit history.
+>
+> The rest of this README is the original project's documentation, kept for reference.
 
 [![CI](https://github.com/Macro-Deck-App/Macro-Deck/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Macro-Deck-App/Macro-Deck/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/Macro-Deck-App/Macro-Deck)](LICENSE)
