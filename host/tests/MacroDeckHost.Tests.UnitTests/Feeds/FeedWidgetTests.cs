@@ -19,6 +19,7 @@ internal sealed class FeedWidgetTests
 	private const string NewsUrl = "https://news.example.com/feed.xml";
 	private const string SecondUrl = "https://news.example.com/2";
 	private const string ImageUrl = "https://img.example.com/second.png";
+	private const string FirstImageUrl = "https://img.example.com/first.png";
 
 	private static readonly Guid _newsId = Guid.Parse("0b6f4b7e-0000-0000-0000-00000000000a");
 	private static readonly byte[] _png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];
@@ -169,6 +170,40 @@ internal sealed class FeedWidgetTests
 			Assert.That(after, Does.Contain("First"));
 			Assert.That(after, Does.Not.Contain("Second"));
 		});
+	}
+
+	[Test]
+	public async Task The_details_dialog_loads_the_next_article_image_while_navigating()
+	{
+		await ServeBothWithImagesAsync();
+		var origin = new RecordingOrigin();
+		await using var session = await OpenWidgetAsync(FeedWidgetTypes.ListQualifiedId,
+			new { count = 1, tap = "dialog" });
+
+		Tap(session, origin);
+		await CalendarTree.WaitForAsync(() => origin.Modals.Count == 1, "no dialog was opened");
+
+		await using var dialog = await OpenDialogAsync(origin.Modals.Single());
+		await CalendarTree.WaitForAsync(
+			() => CalendarTree.Find(dialog.BuildTree().Root, "image") is not null,
+			"the first article image never loaded");
+
+		var initial = JsonSerializer.Serialize(
+			CalendarTree.Get(dialog.BuildTree().Root, "image").Properties[UiComponentProperties.Source]);
+		var next = CalendarTree.Get(dialog.BuildTree().Root, "next");
+
+		dialog.Dispatch(new UiEvent { NodeId = next.Id, Name = UiComponentEvents.Press });
+
+		await CalendarTree.WaitForAsync(
+			() =>
+			{
+				var image = CalendarTree.Find(dialog.BuildTree().Root, "image");
+				return image is not null
+					&& JsonSerializer.Serialize(image.Properties[UiComponentProperties.Source]) != initial;
+			},
+			"the next article image never loaded");
+
+		Assert.That(CalendarTree.Texts(dialog.BuildTree().Root), Does.Contain("First"));
 	}
 
 	[Test]
@@ -471,6 +506,21 @@ internal sealed class FeedWidgetTests
 		_server.ServeXml(NewsUrl,
 			FeedsIntegrationTests.News(FeedsIntegrationTests.First,
 				FeedsIntegrationTests.Item("2", "Second", 2, $"<enclosure url=\"{ImageUrl}\" type=\"image/png\"/>")));
+		await _integration.RefreshAsync(_newsId);
+	}
+
+	private async Task ServeBothWithImagesAsync()
+	{
+		_server.Serve(FirstImageUrl,
+			_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_png) });
+		_server.Serve(ImageUrl,
+			_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(_png) });
+		_server.ServeXml(NewsUrl,
+			FeedsIntegrationTests.News(
+				FeedsIntegrationTests.Item("1", "First", 1,
+					$"<enclosure url=\"{FirstImageUrl}\" type=\"image/png\"/>"),
+				FeedsIntegrationTests.Item("2", "Second", 2,
+					$"<enclosure url=\"{ImageUrl}\" type=\"image/png\"/>")));
 		await _integration.RefreshAsync(_newsId);
 	}
 

@@ -93,7 +93,8 @@ adding more widgets does not add requests to the feed.
 - **Show details**: a dialog with the image, title, author, date, description and address, and an **Open**
   button that opens the article on that device. The dialog shows the article's position in the widget's
   list, for example `3 / 9`, with previous and next buttons that swap the article in place without closing
-  the dialog.
+  the dialog. It loads the image for the article currently shown, including an article that is not on the
+  widget's current page.
 - **Run the widget's actions only**: nothing opens; only the widget's actions run.
 
 With **Open links on: This computer**, the first two choices use the computer instead of the tapped

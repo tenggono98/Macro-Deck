@@ -16,7 +16,13 @@ using Strings = MacroDeckHost.Localization.AppStrings.Widgets.Feeds.Dialog;
 
 namespace MacroDeckHost.Integrations.Feeds.Widgets;
 
-internal sealed record FeedDialogEntry(FeedItem? Item, string Meta, UiResource? Image, Uri? Url);
+internal sealed record FeedDialogEntry(
+	FeedItem? Item,
+	string Meta,
+	string? ImageUrl,
+	UiResource? Image,
+	bool AllowLocal,
+	Uri? Url);
 
 internal static class FeedArticleDialog
 {
@@ -65,6 +71,7 @@ internal static class FeedArticleDialog
 				|| !data.TryGetProperty(CanOpenKey, out var canOpenValue)
 				|| canOpenValue.ValueKind != JsonValueKind.False);
 		var feedback = new UiState<LocalizedText>(default);
+		var imageVersion = new UiState<int>(0);
 
 		UiViewSession? session = null;
 		UiView? view = null;
@@ -73,9 +80,46 @@ internal static class FeedArticleDialog
 				index,
 				canOpen,
 				feedback,
+				imageVersion,
 				hostOpen,
+				images,
 				() => _ = OpenAsync(session?.Origin, entries, index, canOpen, feedback, view!)));
-		session = new UiViewSession(view);
+
+		void OnImagesChanged(object? sender, EventArgs args)
+		{
+			var changed = false;
+			for (var position = 0; position < entries.Count; position++)
+			{
+				var entry = entries[position];
+				if (entry.Image is null && entry.ImageUrl is { } imageUrl)
+				{
+					var image = images.Find(imageUrl);
+					if (image is not null)
+					{
+						entries[position] = entry with { Image = image };
+						changed = true;
+					}
+				}
+			}
+
+			if (!changed)
+			{
+				return;
+			}
+
+			using (view.Batch())
+			{
+				imageVersion.Set(imageVersion.Value + 1);
+			}
+		}
+
+		images.Changed += OnImagesChanged;
+		session = new UiViewSession(view, () =>
+		{
+			images.Changed -= OnImagesChanged;
+			return ValueTask.CompletedTask;
+		});
+		TrackAround(entries, index.Value, images);
 		return session;
 	}
 
@@ -129,8 +173,10 @@ internal static class FeedArticleDialog
 		var url = Uri.TryCreate(item?.Url, UriKind.Absolute, out var parsed) && FeedClient.IsWebUrl(parsed)
 			? parsed
 			: null;
+		var imageUrl = item?.ImageUrl;
+		var image = imageUrl is { } imageSource ? images.Find(imageSource) : null;
 
-		return new FeedDialogEntry(item, meta, item?.ImageUrl is { } imageUrl ? images.Find(imageUrl) : null, url);
+		return new FeedDialogEntry(item, meta, imageUrl, image, feed?.AllowLocalNetwork == true, url);
 	}
 
 	private static FeedDialogEntry? Current(List<FeedDialogEntry> entries, UiState<int> index)
@@ -138,6 +184,36 @@ internal static class FeedArticleDialog
 		return entries.Count == 0
 			? null
 			: entries[Math.Clamp(index.Value, 0, entries.Count - 1)];
+	}
+
+	private static UiResource? CurrentImage(
+		List<FeedDialogEntry> entries,
+		UiState<int> index,
+		UiState<int> imageVersion)
+	{
+		_ = imageVersion.Value;
+		return Current(entries, index)?.Image;
+	}
+
+	private static void TrackAround(List<FeedDialogEntry> entries, int position, IFeedImages images)
+	{
+		if (entries.Count == 0)
+		{
+			return;
+		}
+
+		Track(position);
+		Track((position + 1) % entries.Count);
+		Track((position - 1 + entries.Count) % entries.Count);
+
+		void Track(int at)
+		{
+			var entry = entries[at];
+			if (entry.ImageUrl is { } imageUrl)
+			{
+				images.Track(imageUrl, entry.AllowLocal);
+			}
+		}
 	}
 
 	private static async Task OpenAsync(
@@ -181,7 +257,9 @@ internal static class FeedArticleDialog
 		UiState<int> index,
 		UiState<bool> canOpen,
 		UiState<LocalizedText> feedback,
+		UiState<int> imageVersion,
 		bool hostOpen,
+		IFeedImages images,
 		Action open)
 	{
 		var children = new List<UiElement>
@@ -205,7 +283,7 @@ internal static class FeedArticleDialog
 			{
 				Key = "itemGate",
 				Condition = () => Current(entries, index)?.Item is not null,
-				Content = () => ItemContent(entries, index, canOpen, feedback, hostOpen, open)
+				Content = () => ItemContent(entries, index, canOpen, feedback, imageVersion, hostOpen, open)
 			}
 		};
 
@@ -221,7 +299,7 @@ internal static class FeedArticleDialog
 		};
 		if (entries.Count > 0)
 		{
-			layout.Add(Navigation(entries, index, canOpen, feedback));
+			layout.Add(Navigation(entries, index, canOpen, feedback, images));
 		}
 
 		return new UiStack
@@ -239,6 +317,7 @@ internal static class FeedArticleDialog
 		UiState<int> index,
 		UiState<bool> canOpen,
 		UiState<LocalizedText> feedback,
+		UiState<int> imageVersion,
 		bool hostOpen,
 		Action open)
 	{
@@ -247,11 +326,11 @@ internal static class FeedArticleDialog
 			new UiWhen
 			{
 				Key = "imageGate",
-				Condition = () => Current(entries, index)?.Image is not null,
+				Condition = () => CurrentImage(entries, index, imageVersion) is not null,
 				Content = () => new UiImage
 				{
 					Key = "image",
-					Source = UiValue.Optional(() => Image(Current(entries, index)?.Image)),
+					Source = UiValue.Optional(() => Image(CurrentImage(entries, index, imageVersion))),
 					MainSize = UiSize.FromBasis(0.4)
 				}
 			},
@@ -333,13 +412,15 @@ internal static class FeedArticleDialog
 		List<FeedDialogEntry> entries,
 		UiState<int> index,
 		UiState<bool> canOpen,
-		UiState<LocalizedText> feedback)
+		UiState<LocalizedText> feedback,
+		IFeedImages images)
 	{
 		void Move(int delta)
 		{
 			index.Set((index.Value + delta + entries.Count) % entries.Count);
 			canOpen.Set(true);
 			feedback.Set(default);
+			TrackAround(entries, index.Value, images);
 		}
 
 		var position = new UiTextRun
