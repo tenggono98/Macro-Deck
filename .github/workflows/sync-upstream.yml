@@ -1,0 +1,35 @@
+name: Sync upstream main
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-hobby
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'tenggono98/Macro-Deck'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the fork branch
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: Hobby
+          fetch-depth: 0
+
+      - name: Merge upstream main into Hobby
+        env:
+          UPSTREAM_REPOSITORY: Macro-Deck-App/Macro-Deck
+        run: |
+          git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+          git fetch --no-tags upstream main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit FETCH_HEAD
+          git push origin HEAD:Hobby
