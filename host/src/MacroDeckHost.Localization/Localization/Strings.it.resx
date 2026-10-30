@@ -780,6 +780,43 @@
   <data name="Backup.Progress.ByteDetail" xml:space="preserve">
     <value>{processed} di {total}</value>
   </data>
+  <data name="Backup.Progress.RestoreCancelledToast" xml:space="preserve">
+    <value>Ripristino annullato</value>
+  </data>
+  <data name="Backup.Progress.CancelledToast" xml:space="preserve">
+    <value>Backup annullato</value>
+  </data>
+  <data name="Backup.Progress.CancelRestore" xml:space="preserve">
+    <value>Annulla ripristino</value>
+  </data>
+  <data name="Backup.Progress.Cancel" xml:space="preserve">
+    <value>Annulla backup</value>
+  </data>
+  <data name="Backup.Progress.StageVerifying" xml:space="preserve">
+    <value>Verifica del backup</value>
+  </data>
+  <data name="Backup.Progress.StageCopying" xml:space="preserve">
+    <value>Copia e crittografia dei tuoi dati</value>
+  </data>
+  <data name="Backup.Progress.StagePreparing" xml:space="preserve">
+    <value>Preparazione</value>
+  </data>
+  <data name="Backup.Progress.TitleRestoring" xml:space="preserve">
+    <value>Ripristino del backup</value>
+  </data>
+  <data name="Backup.Progress.TitleCreating" xml:space="preserve">
+    <value>Creazione del backup</value>
+  </data>
+  <data name="Backup.Progress.CheckingBackup" xml:space="preserve">
+    <value>Verifica del backup</value>
+  </data>
+  <data name="Backup.Progress.CreatingSafetyBackup" xml:space="preserve">
+    <value>Creazione del backup di sicurezza</value>
+  </data>
+  <data name="Backup.Progress.Percent" xml:space="preserve">
+    <value>{percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Backup.RecoveryKey.CreatedTitle" xml:space="preserve">
     <value>Salva la tua chiave di ripristino</value>
   </data>
@@ -843,8 +880,14 @@
   <data name="Backup.Trigger.Scheduled" xml:space="preserve">
     <value>Pianificato</value>
   </data>
+  <data name="Backup.Warning.AccountsWithoutIntegrations" xml:space="preserve">
+    <value>Account e dispositivi vengono ripristinati senza integrazioni e credenziali. Se il backup è stato creato su un altro computer o tempo fa, tutti vengono disconnessi e i dispositivi devono essere abbinati di nuovo.</value>
+  </data>
   <data name="Backup.Warning.AccountsWithoutProfiles" xml:space="preserve">
     <value>Account e dispositivi vengono ripristinati senza i profili. Un dispositivo che punta a un profilo di avvio non più esistente torna a quello predefinito.</value>
+  </data>
+  <data name="Backup.Warning.AppSettingsWithoutIntegrations" xml:space="preserve">
+    <value>Le impostazioni dell'app vengono ripristinate senza integrazioni e credenziali. Se il backup è stato creato su un altro computer o tempo fa, potrebbe essere necessario configurare di nuovo HTTPS.</value>
   </data>
   <data name="Backup.Warning.AutomationsWithoutIntegrations" xml:space="preserve">
     <value>Le automazioni vengono ripristinate senza integrazioni e credenziali.</value>
@@ -857,6 +900,12 @@
   </data>
   <data name="Backup.Warning.Generic" xml:space="preserve">
     <value>{group} viene ripristinato senza {dependency}, quindi alcune parti potrebbero non funzionare.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAccounts" xml:space="preserve">
+    <value>Le integrazioni e le credenziali vengono ripristinate senza gli account. Se il backup è stato creato su un altro computer o tempo fa, tutti vengono disconnessi e i dispositivi devono essere abbinati di nuovo.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAppSettings" xml:space="preserve">
+    <value>Le integrazioni e le credenziali vengono ripristinate senza le impostazioni dell'app. Se il backup è stato creato su un altro computer o tempo fa, potrebbe essere necessario configurare di nuovo HTTPS.</value>
   </data>
   <data name="Backup.Warning.PluginsWithoutIntegrations" xml:space="preserve">
     <value>I plugin vengono ripristinati senza integrazioni e credenziali. Le credenziali dei plugin risulteranno mancanti.</value>
@@ -884,6 +933,9 @@
   </data>
   <data name="Bootstrapper.Errors.CryptographyUnavailable" xml:space="preserve">
     <value>Macro Deck non è riuscito a usare il servizio di crittografia del sistema operativo. Su Windows, assicurati che il servizio CNG Key Isolation (KeyIso) sia in esecuzione oppure riavvia il computer.</value>
+  </data>
+  <data name="Bootstrapper.Errors.DatabaseFromNewerVersion" xml:space="preserve">
+    <value>Questa cartella dei dati è stata usata per ultima da una versione più recente di Macro Deck. Reinstalla quella versione; i tuoi dati non sono stati modificati.</value>
   </data>
   <data name="Bootstrapper.Errors.HostBinaryMissing" xml:space="preserve">
     <value>Il file eseguibile host di Macro Deck è mancante:
@@ -1012,6 +1064,27 @@ Chiudi l'applicazione che utilizza la porta (o un Macro Deck ancora in esecuzion
   <data name="Bootstrapper.InstallationDamaged.Title" xml:space="preserve">
     <value>Macro Deck non è stato aggiornato completamente</value>
   </data>
+  <data name="Bootstrapper.Mcp.TokenMissing" xml:space="preserve">
+    <value>{variable} non è impostata. Reinstalla l'estensione per Claude Desktop da Impostazioni &gt; Client IA.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotRunning" xml:space="preserve">
+    <value>Macro Deck non è in esecuzione. Avvia Macro Deck e riprova.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.TokenRejected" xml:space="preserve">
+    <value>Macro Deck ha rifiutato il token di accesso: è stato revocato o eliminato. Crea un nuovo token in Impostazioni &gt; Client IA e reinstalla l'estensione.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Unavailable" xml:space="preserve">
+    <value>Macro Deck non ha un server MCP disponibile: è bloccato o non supporta i client IA. Sblocca Macro Deck e riprova.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Refused" xml:space="preserve">
+    <value>Macro Deck ha rifiutato la richiesta (HTTP {status}).</value>
+  </data>
+  <data name="Bootstrapper.Mcp.ConnectionLost" xml:space="preserve">
+    <value>La connessione a Macro Deck si è interrotta prima della risposta. La richiesta potrebbe essere stata eseguita, quindi controlla prima di riprovare.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotInitialized" xml:space="preserve">
+    <value>La sessione MCP non è stata inizializzata.</value>
+  </data>
   <data name="Bootstrapper.Menu.About" xml:space="preserve">
     <value>Informazioni su Macro Deck</value>
   </data>
@@ -1113,6 +1186,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Bootstrapper.Update.Later" xml:space="preserve">
     <value>Più tardi</value>
   </data>
+  <data name="Bootstrapper.Update.BackupCancelled" xml:space="preserve">
+    <value>L'aggiornamento non è stato installato perché il suo backup è stato annullato.</value>
+  </data>
   <data name="Bootstrapper.Update.LinuxNotSupported" xml:space="preserve">
     <value>Su Linux Macro Deck non installa autonomamente gli aggiornamenti. Scarica la nuova versione da {downloadPageUrl} e aggiorna la tua installazione AppImage, DEB o RPM.</value>
   </data>
@@ -1146,9 +1222,35 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
     <value>Attualmente hai la versione {version}</value>
     <comment>[version:string]</comment>
   </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpStatus" xml:space="preserve">
+    <value>Creazione di un backup prima dell'aggiornamento…</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.CancelBackup" xml:space="preserve">
+    <value>Annulla aggiornamento</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpProgressStatus" xml:space="preserve">
+    <value>Creazione di un backup prima dell'aggiornamento… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Bootstrapper.UpdateWindow.DownloadingStatus" xml:space="preserve">
     <value>Download in corso… {percent}%</value>
     <comment>[percent:int]</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.One" xml:space="preserve">
+    <value>ancora circa {count} min</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.Other" xml:space="preserve">
+    <value>ancora circa {count} min</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.One" xml:space="preserve">
+    <value>ancora circa {count} s</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.Other" xml:space="preserve">
+    <value>ancora circa {count} s</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
   </data>
   <data name="Bootstrapper.UpdateWindow.InstallOnQuitStatus" xml:space="preserve">
     <value>L'aggiornamento è stato scaricato. Macro Deck lo installerà quando esci dall'app.</value>
@@ -1345,6 +1447,21 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="ConfigFlow.WaitingForAuthorization" xml:space="preserve">
     <value>In attesa di autorizzazione…</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteTitle" xml:space="preserve">
+    <value>Autorizzazione completata</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteMessage" xml:space="preserve">
+    <value>Puoi chiudere questa finestra e tornare a Macro Deck.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.FailedMessage" xml:space="preserve">
+    <value>Torna a Macro Deck per vedere il motivo e riprovare. Puoi chiudere questa finestra.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedTitle" xml:space="preserve">
+    <value>Impossibile associare l'autorizzazione</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedMessage" xml:space="preserve">
+    <value>Puoi chiudere questa finestra.</value>
   </data>
   <data name="ConfigUi.ViewUnavailable" xml:space="preserve">
     <value>Questa visualizzazione non è temporaneamente disponibile. Continua con i campi qui sotto.</value>
@@ -2417,6 +2534,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Errors.Actions.ProviderTimeout" xml:space="preserve">
     <value>L'azione non ha risposto in tempo</value>
   </data>
+  <data name="Errors.Actions.SecretApprovalPending" xml:space="preserve">
+    <value>Questo passaggio usa un segreto ed è in attesa della tua approvazione.</value>
+  </data>
   <data name="Errors.Actions.ServiceUnreachable" xml:space="preserve">
     <value>Impossibile raggiungere il servizio.</value>
   </data>
@@ -2504,6 +2624,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Errors.Backup.ImportFailed" xml:space="preserve">
     <value>Impossibile importare il backup</value>
+  </data>
+  <data name="Errors.Backup.IncompatibleVersion" xml:space="preserve">
+    <value>Questo backup non può essere ripristinato con questa versione di Macro Deck</value>
   </data>
   <data name="Errors.Backup.InspectFailed" xml:space="preserve">
     <value>Impossibile analizzare il backup</value>
@@ -2608,9 +2731,15 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Errors.Config.FlowExpired" xml:space="preserve">
     <value>La sessione della configurazione guidata è scaduta. Ricomincia.</value>
   </data>
+  <data name="Errors.Config.ForeignSecretReference" xml:space="preserve">
+    <value>Questo valore fa riferimento a un segreto che non appartiene a questa configurazione.</value>
+  </data>
   <data name="Errors.Config.InvalidEntryId" xml:space="preserve">
     <value>'{id}' non è un id di voce di configurazione valido</value>
     <comment>[id:string]</comment>
+  </data>
+  <data name="Errors.Config.ReconfigureRequiresApp" xml:space="preserve">
+    <value>Una configurazione che contiene segreti può essere modificata solo nell'app Macro Deck.</value>
   </data>
   <data name="Errors.Device.LoadFailed" xml:space="preserve">
     <value>Caricamento dei dispositivi non riuscito</value>
@@ -2833,6 +2962,24 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Errors.KeyRing.RecoveryKeyInvalid" xml:space="preserve">
     <value>Quella chiave di ripristino non sblocca questa installazione.</value>
   </data>
+  <data name="Errors.Mcp.ExtensionTokenInvalid" xml:space="preserve">
+    <value>Questo token di accesso non può più essere usato. Crea un nuovo token per scaricare l'estensione.</value>
+  </data>
+  <data name="Errors.Mcp.ExtensionUnavailable" xml:space="preserve">
+    <value>L'estensione per Claude Desktop è disponibile solo nell'app Macro Deck installata su macOS e Windows.</value>
+  </data>
+  <data name="Errors.Mcp.PolicyProviderInvalid" xml:space="preserve">
+    <value>Scegli un fornitore.</value>
+  </data>
+  <data name="Errors.Mcp.TokenAlreadyRevoked" xml:space="preserve">
+    <value>Questo token di accesso è già stato revocato.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNameInvalid" xml:space="preserve">
+    <value>Inserisci un nome di massimo 64 caratteri.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNotFound" xml:space="preserve">
+    <value>Non esiste alcun token di accesso con questo ID.</value>
+  </data>
   <data name="Errors.Migration.OperationFailed" xml:space="preserve">
     <value>Non è stato possibile completare la migrazione.</value>
   </data>
@@ -2868,6 +3015,15 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Errors.Plugins.InstallBlockedByTakeover" xml:space="preserve">
     <value>Una build di sviluppo ha preso il controllo di questo plugin. Termina la presa di controllo prima di installarlo o aggiornarlo.</value>
+  </data>
+  <data name="Errors.Plugins.SignerMismatch" xml:space="preserve">
+    <value>Questo plugin è firmato da un autore diverso da quello della versione che hai già, quindi non è stato installato.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallDataNotDeleted" xml:space="preserve">
+    <value>Alcuni dati salvati del plugin non sono stati eliminati perché un file è ancora in uso, quindi il plugin non è stato disinstallato. Chiudi i programmi che lo usano e riprova.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallStopFailed" xml:space="preserve">
+    <value>Non è stato possibile arrestare il plugin, quindi non è stato rimosso nulla. Riprova.</value>
   </data>
   <data name="Errors.Plugins.HostShuttingDown" xml:space="preserve">
     <value>Macro Deck si sta chiudendo, quindi il plugin non è stato avviato.</value>
@@ -2963,6 +3119,12 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Errors.Scripts.NotFound" xml:space="preserve">
     <value>Script non trovato</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalChanged" xml:space="preserve">
+    <value>Nel frattempo questo passaggio è cambiato. Controllalo di nuovo.</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalNotFound" xml:space="preserve">
+    <value>Questo passaggio non esiste più.</value>
   </data>
   <data name="Errors.Secrets.NotFound" xml:space="preserve">
     <value>Segreto '{id}' non trovato</value>
@@ -8609,8 +8771,8 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
     <value>Digita testo</value>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextParameterDescription" xml:space="preserve">
-    <value>Il testo da digitare. Supporta variabili/modelli, ad es. {{ vars.name }}.</value>
-    <comment>The literal {{ vars.name }} is Macro Deck's own template syntax shown as an example, not a translation placeholder.</comment>
+    <value>Il testo da digitare. Supporta variabili/modelli, ad es. {example}.</value>
+    <comment>{example} is filled with Macro Deck's own template syntax ({{ vars.name }}); keep it as it is.</comment>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextPlaceholder" xml:space="preserve">
     <value>Ciao mondo</value>
@@ -9992,6 +10154,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Integrations.Page.InstallFailed" xml:space="preserve">
     <value>Non è stato possibile installare il plugin</value>
   </data>
+  <data name="Integrations.Page.InstallCancelled" xml:space="preserve">
+    <value>Aggiornamento del plugin annullato. Non è stato modificato nulla.</value>
+  </data>
   <data name="Integrations.Page.InstallFromFileAction" xml:space="preserve">
     <value>Installa da file…</value>
   </data>
@@ -10055,7 +10220,7 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
     <value>Disinstallare il plugin?</value>
   </data>
   <data name="Integrations.Page.UninstallHint" xml:space="preserve">
-    <value>Lascia questa opzione disattivata per mantenere le impostazioni del plugin, così una futura reinstallazione riprende da dove eri rimasto. Non influisce su come {name} è configurato altrove in Macro Deck.</value>
+    <value>Lascia questa opzione disattivata per mantenere le impostazioni del plugin e gli account e le connessioni configurati per esso, così una futura reinstallazione riprende da dove eri rimasto. Attivala per eliminare anche questi, credenziali salvate incluse. Non influisce su come {name} è configurato altrove in Macro Deck.</value>
   </data>
   <data name="Integrations.Page.UninstallMenuAction" xml:space="preserve">
     <value>Disinstalla…</value>
@@ -11441,7 +11606,7 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
     <value>Sospendi</value>
   </data>
   <data name="Integrations.System.Actions.SupportsVariablesHint" xml:space="preserve">
-    <value>Supporta le variabili: {{ vars.name }}</value>
+    <value>Supporta le variabili: {example}</value>
   </data>
   <data name="Integrations.System.Actions.VolumeAmount.Label" xml:space="preserve">
     <value>Quantità (%)</value>
@@ -14709,6 +14874,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Nav.Scripts" xml:space="preserve">
     <value>Script</value>
   </data>
+  <data name="Nav.SecretApprovals" xml:space="preserve">
+    <value>Approvazioni</value>
+  </data>
   <data name="Nav.Store" xml:space="preserve">
     <value>Store</value>
   </data>
@@ -14802,6 +14970,15 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Notifications.IconImport.Importing" xml:space="preserve">
     <value>Importazione delle icone in {pack}</value>
   </data>
+  <data name="Notifications.Backup.RestoreFailed" xml:space="preserve">
+    <value>Ripristino non riuscito</value>
+  </data>
+  <data name="Notifications.Backup.RestoreNotCompletedMessage" xml:space="preserve">
+    <value>Non è stato possibile ripristinare il backup. I tuoi dati sono come prima del ripristino.</value>
+  </data>
+  <data name="Notifications.Backup.RestoreRollbackIncompleteMessage" xml:space="preserve">
+    <value>Non è stato possibile ripristinare il backup e una parte dei tuoi dati non è ancora stata rimessa a posto. Riavvia Macro Deck per completare l’operazione.</value>
+  </data>
   <data name="Notifications.IconImport.NothingImportable" xml:space="preserve">
     <value>Niente di tutto questo poteva essere importato come icona.</value>
   </data>
@@ -14892,6 +15069,12 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Notifications.PluginTakeoverRequestedMessage" xml:space="preserve">
     <value>{name} vuole sostituire un plugin installato e attende la tua approvazione in Macro Deck.</value>
     <comment>[name:string]</comment>
+  </data>
+  <data name="Notifications.SecretApprovalPendingMessage" xml:space="preserve">
+    <value>Un passaggio che usa un segreto è stato modificato e resta in pausa finché non lo approvi.</value>
+  </data>
+  <data name="Notifications.SecretApprovalPendingTitle" xml:space="preserve">
+    <value>Un passaggio è in attesa della tua approvazione</value>
   </data>
   <data name="Notifications.StoreAutoUpdateFailed.One" xml:space="preserve">
     <value>{count} aggiornamento automatico delle estensioni non riuscito</value>
@@ -15546,6 +15729,82 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Scripts.ValidationHint" xml:space="preserve">
     <value>Alcune azioni hanno ancora bisogno di un valore.</value>
+  </data>
+  <data name="SecretApprovals.AlsoUsedBy" xml:space="preserve">
+    <value>Usato anche da {owners}</value>
+    <comment>[owners:string]</comment>
+  </data>
+  <data name="SecretApprovals.Approve" xml:space="preserve">
+    <value>Approva</value>
+  </data>
+  <data name="SecretApprovals.ApproveFailed" xml:space="preserve">
+    <value>Impossibile approvare il passaggio.</value>
+  </data>
+  <data name="SecretApprovals.ApprovedColumn" xml:space="preserve">
+    <value>Approvato</value>
+  </data>
+  <data name="SecretApprovals.ChangedBadge" xml:space="preserve">
+    <value>Modificato dopo l'approvazione</value>
+  </data>
+  <data name="SecretApprovals.ChangedTag" xml:space="preserve">
+    <value>Modificato</value>
+  </data>
+  <data name="SecretApprovals.EmptyHeading" xml:space="preserve">
+    <value>Niente in attesa di approvazione</value>
+  </data>
+  <data name="SecretApprovals.EmptyMessage" xml:space="preserve">
+    <value>Tutti i passaggi che usano un segreto sono approvati.</value>
+  </data>
+  <data name="SecretApprovals.Intro" xml:space="preserve">
+    <value>I passaggi che usano un segreto vengono eseguiti solo dopo che li hai approvati. Controlla cosa è cambiato, poi approvali.</value>
+  </data>
+  <data name="SecretApprovals.LoadFailed" xml:space="preserve">
+    <value>Impossibile caricare le approvazioni.</value>
+  </data>
+  <data name="SecretApprovals.Loading" xml:space="preserve">
+    <value>Caricamento delle approvazioni…</value>
+  </data>
+  <data name="SecretApprovals.NewBadge" xml:space="preserve">
+    <value>Nuovo passaggio</value>
+  </data>
+  <data name="SecretApprovals.NotSet" xml:space="preserve">
+    <value>Non impostato</value>
+  </data>
+  <data name="SecretApprovals.NowColumn" xml:space="preserve">
+    <value>Ora</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Automation" xml:space="preserve">
+    <value>Automazione</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Script" xml:space="preserve">
+    <value>Script</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Widget" xml:space="preserve">
+    <value>Widget</value>
+  </data>
+  <data name="SecretApprovals.OwnerWithContext" xml:space="preserve">
+    <value>{owner} in {context}</value>
+    <comment>[owner:string] [context:string]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.One" xml:space="preserve">
+    <value>{count} passaggio in attesa di approvazione</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.Other" xml:space="preserve">
+    <value>{count} passaggi in attesa di approvazione</value>
+    <comment>[plural] [count:int]</comment>
+  </data>
+  <data name="SecretApprovals.SecretValue" xml:space="preserve">
+    <value>Segreto</value>
+  </data>
+  <data name="SecretApprovals.SettingColumn" xml:space="preserve">
+    <value>Impostazione</value>
+  </data>
+  <data name="SecretApprovals.Title" xml:space="preserve">
+    <value>Approvazioni</value>
+  </data>
+  <data name="SecretApprovals.UnknownBadge" xml:space="preserve">
+    <value>Non ancora controllato</value>
   </data>
   <data name="Settings.About.ApacheLicenseLabel" xml:space="preserve">
     <value>Apache License 2.0</value>
@@ -16928,6 +17187,107 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Settings.Logging.MinimumLevelLabel" xml:space="preserve">
     <value>Livello minimo</value>
   </data>
+  <data name="Settings.Mcp.ClaudeDesktopAction" xml:space="preserve">
+    <value>Scarica per Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopHint" xml:space="preserve">
+    <value>Apri il file scaricato in Claude Desktop per installarvi Macro Deck. Il file contiene questo token, quindi eliminalo dopo l'installazione.</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopSaveFailed" xml:space="preserve">
+    <value>Impossibile salvare l'estensione per Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClientSelectLabel" xml:space="preserve">
+    <value>Client IA</value>
+  </data>
+  <data name="Settings.Mcp.ConfigLabel" xml:space="preserve">
+    <value>Configurazione del client</value>
+  </data>
+  <data name="Settings.Mcp.ConnectedSinceLabel" xml:space="preserve">
+    <value>Connesso da</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.One" xml:space="preserve">
+    <value>{count} connessione</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.Other" xml:space="preserve">
+    <value>{count} connessioni</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionsEmpty" xml:space="preserve">
+    <value>Nessun client IA è connesso.</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionsTitle" xml:space="preserve">
+    <value>Client connessi</value>
+  </data>
+  <data name="Settings.Mcp.Description" xml:space="preserve">
+    <value>Consenti ad assistenti IA come Claude o VS Code di esaminare e costruire la tua configurazione ed eseguire azioni tramite il Model Context Protocol (MCP). Non possono mai leggere i tuoi segreti.</value>
+  </data>
+  <data name="Settings.Mcp.EmptyHeading" xml:space="preserve">
+    <value>Ancora nessun token di accesso</value>
+  </data>
+  <data name="Settings.Mcp.EmptyMessage" xml:space="preserve">
+    <value>Crea un token e aggiungilo al tuo client IA per collegarlo a Macro Deck.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointHint" xml:space="preserve">
+    <value>Usa questo indirizzo su questo computer. Su un altro computer della tua rete, sostituisci 127.0.0.1 con l'indirizzo di rete di questo computer. Ogni connessione richiede un token di accesso.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointLabel" xml:space="preserve">
+    <value>Indirizzo del server</value>
+  </data>
+  <data name="Settings.Mcp.EndpointUnavailable" xml:space="preserve">
+    <value>Il server MCP non è disponibile al momento.</value>
+  </data>
+  <data name="Settings.Mcp.Heading" xml:space="preserve">
+    <value>Client IA</value>
+  </data>
+  <data name="Settings.Mcp.LoadFailed" xml:space="preserve">
+    <value>Impossibile caricare le impostazioni dei client IA</value>
+  </data>
+  <data name="Settings.Mcp.NeverUsed" xml:space="preserve">
+    <value>Mai</value>
+  </data>
+  <data name="Settings.Mcp.OtherClients" xml:space="preserve">
+    <value>Altri client</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAllow" xml:space="preserve">
+    <value>Consenti</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAsksFirst" xml:space="preserve">
+    <value>Chiede prima per: {actions}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyConfirm" xml:space="preserve">
+    <value>Chiedi prima</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDefault" xml:space="preserve">
+    <value>Predefinito: {mode}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDescription" xml:space="preserve">
+    <value>Scegli per ogni fornitore se i client IA possono eseguirne le azioni direttamente, devono prima chiederti o non possono eseguirle affatto. Vale anche per le azioni nei flussi creati dai client IA.</value>
+  </data>
+  <data name="Settings.Mcp.PolicyOff" xml:space="preserve">
+    <value>Disattivato</value>
+  </data>
+  <data name="Settings.Mcp.PolicySaveFailed" xml:space="preserve">
+    <value>Impossibile salvare l'impostazione</value>
+  </data>
+  <data name="Settings.Mcp.PolicyTitle" xml:space="preserve">
+    <value>Azioni che i client IA possono eseguire</value>
+  </data>
+  <data name="Settings.Mcp.RefreshAction" xml:space="preserve">
+    <value>Aggiorna</value>
+  </data>
+  <data name="Settings.Mcp.RemoveConfirmMessage" xml:space="preserve">
+    <value>{name} viene eliminato definitivamente. È già revocato, quindi nulla può usarlo.</value>
+  </data>
+  <data name="Settings.Mcp.RevokeConfirmMessage" xml:space="preserve">
+    <value>{name} smette subito di funzionare e ogni client IA che lo usa viene disconnesso.</value>
+  </data>
+  <data name="Settings.Mcp.TokensTitle" xml:space="preserve">
+    <value>Token di accesso</value>
+  </data>
+  <data name="Settings.Mcp.UnknownClient" xml:space="preserve">
+    <value>Client sconosciuto</value>
+  </data>
   <data name="Settings.Modal.AccountDefaultName" xml:space="preserve">
     <value>Account Macro Deck</value>
   </data>
@@ -16961,6 +17321,12 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Settings.Network.DiscoveryLabel" xml:space="preserve">
     <value>Mostra nella rete locale</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyDescription" xml:space="preserve">
+    <value>Attivalo solo se su questo computer è in esecuzione un reverse proxy come nginx, Caddy o Traefik che inoltra le connessioni a Macro Deck. Macro Deck usa quindi l’indirizzo e lo stato HTTPS che il proxy riporta per ogni client.</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyLabel" xml:space="preserve">
+    <value>Dietro un reverse proxy su questo computer</value>
   </data>
   <data name="Settings.Network.EnvironmentOverrideNote" xml:space="preserve">
     <value>MACRO_DECK_PORT è impostata per questo avvio e determina la porta ({port}). Il valore configurato resta inutilizzato finché questo override non viene rimosso.</value>
@@ -17281,7 +17647,7 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
     <value>Esporta la tua chiave di ripristino di backup per proteggere il portachiavi. Fino ad allora resta leggibile sul disco.</value>
   </data>
   <data name="Settings.Security.LockScreenDescription" xml:space="preserve">
-    <value>Blocca l'esecuzione delle azioni mentre questo computer è bloccato, qualunque sia la scelta fatta qui.</value>
+    <value>Blocca l'esecuzione delle azioni mentre questo computer è bloccato, qualunque sia la scelta fatta qui. Su Linux, Macro Deck non riesce a rilevare che questo computer è bloccato, quindi le azioni continuano a essere eseguite e i client connessi non vengono bloccati.</value>
   </data>
   <data name="Settings.Security.LockScreenHeading" xml:space="preserve">
     <value>Schermata di blocco</value>
@@ -17815,6 +18181,9 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Shell.Notifications.Action.OpenLogs" xml:space="preserve">
     <value>Apri i log</value>
   </data>
+  <data name="Shell.Notifications.Action.OpenSecretApprovals" xml:space="preserve">
+    <value>Controlla</value>
+  </data>
   <data name="Shell.Notifications.Action.OpenTroubleshootingGuide" xml:space="preserve">
     <value>Risoluzione dei problemi</value>
   </data>
@@ -17841,6 +18210,15 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Shell.Notifications.MarkAllRead" xml:space="preserve">
     <value>Segna tutte come lette</value>
+  </data>
+  <data name="Shell.Notifications.MoreActions" xml:space="preserve">
+    <value>Altre azioni sulle notifiche</value>
+  </data>
+  <data name="Shell.Notifications.Section.RequiresAttention" xml:space="preserve">
+    <value>Richiede attenzione</value>
+  </data>
+  <data name="Shell.Notifications.Section.Earlier" xml:space="preserve">
+    <value>Meno recenti</value>
   </data>
   <data name="Shell.Notifications.Unread" xml:space="preserve">
     <value>Non letta</value>
@@ -17897,6 +18275,25 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   <data name="Shell.Splash.PreparingUpdate" xml:space="preserve">
     <value>Preparazione dell'aggiornamento…</value>
   </data>
+  <data name="Shell.Splash.StepInstall" xml:space="preserve">
+    <value>Installa l'aggiornamento</value>
+  </data>
+  <data name="Shell.Splash.StepBackup" xml:space="preserve">
+    <value>Esegui il backup dei tuoi dati</value>
+  </data>
+  <data name="Shell.Splash.CancelUpdate" xml:space="preserve">
+    <value>Annulla aggiornamento</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackup" xml:space="preserve">
+    <value>Creazione del backup…</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackupProgress" xml:space="preserve">
+    <value>Creazione del backup… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
+  <data name="Shell.Splash.InstallingUpdate" xml:space="preserve">
+    <value>Installazione dell'aggiornamento…</value>
+  </data>
   <data name="Shell.Splash.Stopping" xml:space="preserve">
     <value>Chiusura di Macro Deck…</value>
   </data>
@@ -17908,6 +18305,10 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Store.BackingUpEllipsis" xml:space="preserve">
     <value>Backup in corso…</value>
+  </data>
+  <data name="Store.BackingUpProgress" xml:space="preserve">
+    <value>Backup in corso… {percent}%</value>
+    <comment>[percent:int]</comment>
   </data>
   <data name="Store.Cancelled" xml:space="preserve">
     <value>Annullato</value>
@@ -18011,19 +18412,19 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Store.EtaMinutesLeft.One" xml:space="preserve">
     <value>ancora circa {count} min</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaMinutesLeft.Other" xml:space="preserve">
     <value>ancora circa {count} min</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.One" xml:space="preserve">
     <value>ancora circa {count} s</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.Other" xml:space="preserve">
     <value>ancora circa {count} s</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.Failed" xml:space="preserve">
     <value>Non riuscito</value>
@@ -20718,9 +21119,6 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Widgets.Editor.IconProviderNoIconYet" xml:space="preserve">
     <value>Questa azione non ha ancora fornito un'icona.</value>
-  </data>
-  <data name="Widgets.Editor.IconProviderPreviewNote" xml:space="preserve">
-    <value>Questa anteprima mostra l'icona configurata manualmente. Il pulsante stesso mostrerà ciò che fornisce il fornitore.</value>
   </data>
   <data name="Widgets.Editor.ImportIconFailed" xml:space="preserve">
     <value>Impossibile importare l'icona rilasciata</value>
@@ -25053,5 +25451,86 @@ Scaricalo dal sito di Macro Deck e aggiorna l'AppImage, il DEB o l'RPM che hai i
   </data>
   <data name="Widgets.Feeds.Sample.Description" xml:space="preserve">
     <value>Qui appare un breve riassunto dell'articolo.</value>
+  </data>
+  <data name="Mcp.Confirmation.AllowedHeading" xml:space="preserve">
+    <value>Consentito</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclineAction" xml:space="preserve">
+    <value>Rifiuta</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclinedHeading" xml:space="preserve">
+    <value>Rifiutato</value>
+  </data>
+  <data name="Mcp.Confirmation.Hint" xml:space="preserve">
+    <value>Consentilo solo se hai chiesto esattamente questo al client IA.</value>
+  </data>
+  <data name="Mcp.Confirmation.InvalidMessage" xml:space="preserve">
+    <value>Ha già ricevuto una risposta o è scaduta. Chiedi al client IA di riprovare.</value>
+  </data>
+  <data name="Mcp.Confirmation.Lead" xml:space="preserve">
+    <value>{client} chiede a Macro Deck di fare questo:</value>
+  </data>
+  <data name="Mcp.Confirmation.PageTitle" xml:space="preserve">
+    <value>Conferma una richiesta del client IA</value>
+  </data>
+  <data name="Mcp.Elicitation.Confirm" xml:space="preserve">
+    <value>Macro Deck ha bisogno della tua conferma prima che il client IA continui: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmOnPage" xml:space="preserve">
+    <value>Consenti o rifiuta nella pagina di Macro Deck che si apre nel browser: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmTitle" xml:space="preserve">
+    <value>Consenti</value>
+  </data>
+  <data name="Mcp.Elicitation.ProtectedVariable" xml:space="preserve">
+    <value>modifica della variabile {name}, letta da un blocco approvato che usa un segreto</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyAction" xml:space="preserve">
+    <value>{action} ({provider})</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyActionWithValues" xml:space="preserve">
+    <value>{action} ({provider}) con {values}</value>
+  </data>
+  <data name="Mcp.Elicitation.SecretValue" xml:space="preserve">
+    <value>un segreto</value>
+  </data>
+  <data name="Mcp.Elicitation.SetSecret" xml:space="preserve">
+    <value>Inserisci il segreto {label} nella pagina di Macro Deck che si apre nel browser. Il valore resta in Macro Deck.</value>
+  </data>
+  <data name="Mcp.Elicitation.SteeringValue" xml:space="preserve">
+    <value>passaggio di {name} a un blocco approvato che usa un segreto</value>
+  </data>
+  <data name="Mcp.Extension.Description" xml:space="preserve">
+    <value>Permette a Claude di lavorare con la tua configurazione di Macro Deck su questo computer: vedere e creare pulsanti, cartelle e automazioni ed eseguire azioni. Claude non vede mai i tuoi segreti.</value>
+  </data>
+  <data name="Mcp.SecretEntry.EmptyValue" xml:space="preserve">
+    <value>Inserisci un valore.</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidHeading" xml:space="preserve">
+    <value>Questo link non è più valido</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidMessage" xml:space="preserve">
+    <value>È già stato usato o è scaduto. Chiedi al client IA di richiedere di nuovo il segreto.</value>
+  </data>
+  <data name="Mcp.SecretEntry.Lead" xml:space="preserve">
+    <value>{client} chiede a Macro Deck di salvare un segreto: {label}</value>
+  </data>
+  <data name="Mcp.SecretEntry.PageTitle" xml:space="preserve">
+    <value>Inserisci un segreto</value>
+  </data>
+  <data name="Mcp.SecretEntry.Privacy" xml:space="preserve">
+    <value>Solo Macro Deck vede ciò che digiti. {client} riceve un riferimento da usare nelle azioni, mai il valore.</value>
+  </data>
+  <data name="Mcp.SecretEntry.SaveAction" xml:space="preserve">
+    <value>Salva segreto</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedHeading" xml:space="preserve">
+    <value>Segreto salvato</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedMessage" xml:space="preserve">
+    <value>Puoi chiudere questa scheda e tornare a {client}.</value>
+  </data>
+  <data name="Mcp.SecretEntry.ValueLabel" xml:space="preserve">
+    <value>Segreto</value>
   </data>
 </root>

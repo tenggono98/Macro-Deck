@@ -779,6 +779,43 @@
   <data name="Backup.Progress.ByteDetail" xml:space="preserve">
     <value>{processed} من {total}</value>
   </data>
+  <data name="Backup.Progress.RestoreCancelledToast" xml:space="preserve">
+    <value>تم إلغاء الاستعادة</value>
+  </data>
+  <data name="Backup.Progress.CancelledToast" xml:space="preserve">
+    <value>تم إلغاء النسخ الاحتياطي</value>
+  </data>
+  <data name="Backup.Progress.CancelRestore" xml:space="preserve">
+    <value>إلغاء الاستعادة</value>
+  </data>
+  <data name="Backup.Progress.Cancel" xml:space="preserve">
+    <value>إلغاء النسخ الاحتياطي</value>
+  </data>
+  <data name="Backup.Progress.StageVerifying" xml:space="preserve">
+    <value>التحقق من النسخة الاحتياطية</value>
+  </data>
+  <data name="Backup.Progress.StageCopying" xml:space="preserve">
+    <value>نسخ بياناتك وتشفيرها</value>
+  </data>
+  <data name="Backup.Progress.StagePreparing" xml:space="preserve">
+    <value>التحضير</value>
+  </data>
+  <data name="Backup.Progress.TitleRestoring" xml:space="preserve">
+    <value>جارٍ استعادة النسخة الاحتياطية</value>
+  </data>
+  <data name="Backup.Progress.TitleCreating" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية</value>
+  </data>
+  <data name="Backup.Progress.CheckingBackup" xml:space="preserve">
+    <value>جارٍ التحقق من النسخة الاحتياطية</value>
+  </data>
+  <data name="Backup.Progress.CreatingSafetyBackup" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية للأمان</value>
+  </data>
+  <data name="Backup.Progress.Percent" xml:space="preserve">
+    <value>{percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Backup.RecoveryKey.CreatedTitle" xml:space="preserve">
     <value>احفظ مفتاح الاستعادة</value>
   </data>
@@ -842,8 +879,14 @@
   <data name="Backup.Trigger.Scheduled" xml:space="preserve">
     <value>مجدولة</value>
   </data>
+  <data name="Backup.Warning.AccountsWithoutIntegrations" xml:space="preserve">
+    <value>تُستعاد الحسابات والأجهزة دون التكاملات والأسرار. إذا أُنشئت النسخة الاحتياطية على كمبيوتر آخر أو منذ مدة، فسيُسجَّل خروج الجميع ويجب إقران الأجهزة من جديد.</value>
+  </data>
   <data name="Backup.Warning.AccountsWithoutProfiles" xml:space="preserve">
     <value>تُستعاد الحسابات والأجهزة دون ملفات تعريف. الجهاز الذي يشير إلى ملف تعريف بدء غير موجود يعود إلى الملف الافتراضي.</value>
+  </data>
+  <data name="Backup.Warning.AppSettingsWithoutIntegrations" xml:space="preserve">
+    <value>تُستعاد إعدادات التطبيق دون التكاملات والأسرار. إذا أُنشئت النسخة الاحتياطية على كمبيوتر آخر أو منذ مدة، فقد يلزم إعداد HTTPS من جديد.</value>
   </data>
   <data name="Backup.Warning.AutomationsWithoutIntegrations" xml:space="preserve">
     <value>تُستعاد الأتمتة دون تكاملات وأسرار.</value>
@@ -856,6 +899,12 @@
   </data>
   <data name="Backup.Warning.Generic" xml:space="preserve">
     <value>يُستعاد {group} دون {dependency}، لذلك قد لا يعمل بعض أجزائه.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAccounts" xml:space="preserve">
+    <value>تُستعاد التكاملات والأسرار دون الحسابات. إذا أُنشئت النسخة الاحتياطية على كمبيوتر آخر أو منذ مدة، فسيُسجَّل خروج الجميع ويجب إقران الأجهزة من جديد.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAppSettings" xml:space="preserve">
+    <value>تُستعاد التكاملات والأسرار دون إعدادات التطبيق. إذا أُنشئت النسخة الاحتياطية على كمبيوتر آخر أو منذ مدة، فقد يلزم إعداد HTTPS من جديد.</value>
   </data>
   <data name="Backup.Warning.PluginsWithoutIntegrations" xml:space="preserve">
     <value>تُستعاد المكوّنات الإضافية دون تكاملات وأسرار. ستكون بيانات اعتماد المكوّن الإضافي مفقودة.</value>
@@ -883,6 +932,9 @@
   </data>
   <data name="Bootstrapper.Errors.CryptographyUnavailable" xml:space="preserve">
     <value>تعذّر على Macro Deck استخدام خدمة التشفير في نظام التشغيل. في Windows، تأكّد من تشغيل خدمة CNG Key Isolation (KeyIso)، أو أعد تشغيل الكمبيوتر.</value>
+  </data>
+  <data name="Bootstrapper.Errors.DatabaseFromNewerVersion" xml:space="preserve">
+    <value>استُخدم مجلد البيانات هذا آخر مرة بإصدار أحدث من Macro Deck. ثبّت ذلك الإصدار مرة أخرى؛ لم تتغير البيانات.</value>
   </data>
   <data name="Bootstrapper.Errors.HostBinaryMissing" xml:space="preserve">
     <value>ملف المضيف التنفيذي لـ Macro Deck مفقود:
@@ -1011,6 +1063,27 @@
   <data name="Bootstrapper.InstallationDamaged.Title" xml:space="preserve">
     <value>لم يكتمل تحديث Macro Deck</value>
   </data>
+  <data name="Bootstrapper.Mcp.TokenMissing" xml:space="preserve">
+    <value>لم يتم تعيين {variable}. أعد تثبيت إضافة Claude Desktop من الإعدادات &gt; عملاء الذكاء الاصطناعي.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotRunning" xml:space="preserve">
+    <value>Macro Deck لا يعمل. شغّل Macro Deck وحاول مرة أخرى.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.TokenRejected" xml:space="preserve">
+    <value>رفض Macro Deck رمز الوصول لأنه أُلغي أو حُذف. أنشئ رمزًا جديدًا في الإعدادات &gt; عملاء الذكاء الاصطناعي وأعد تثبيت الإضافة.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Unavailable" xml:space="preserve">
+    <value>لا يتوفر خادم MCP في Macro Deck لأنه مقفل أو لا يدعم عملاء الذكاء الاصطناعي. ألغِ قفل Macro Deck وحاول مرة أخرى.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Refused" xml:space="preserve">
+    <value>رفض Macro Deck الطلب (HTTP {status}).</value>
+  </data>
+  <data name="Bootstrapper.Mcp.ConnectionLost" xml:space="preserve">
+    <value>انقطع الاتصال بـ Macro Deck قبل وصول الرد. ربما نُفّذ الطلب، لذا تحقق من ذلك قبل إعادة المحاولة.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotInitialized" xml:space="preserve">
+    <value>لم تتم تهيئة جلسة MCP.</value>
+  </data>
   <data name="Bootstrapper.Menu.About" xml:space="preserve">
     <value>حول Macro Deck</value>
   </data>
@@ -1112,6 +1185,9 @@
   <data name="Bootstrapper.Update.Later" xml:space="preserve">
     <value>لاحقًا</value>
   </data>
+  <data name="Bootstrapper.Update.BackupCancelled" xml:space="preserve">
+    <value>لم يُثبَّت التحديث لأن نسخته الاحتياطية أُلغيت.</value>
+  </data>
   <data name="Bootstrapper.Update.LinuxNotSupported" xml:space="preserve">
     <value>لا يثبّت Macro Deck التحديثات بنفسه على Linux. نزّل الإصدار الجديد من {downloadPageUrl} وحدّث تثبيت ملف AppImage أو DEB أو RPM.</value>
   </data>
@@ -1145,9 +1221,35 @@
     <value>الإصدار الحالي لديك: {version}</value>
     <comment>[version:string]</comment>
   </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpStatus" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية قبل التحديث…</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.CancelBackup" xml:space="preserve">
+    <value>إلغاء التحديث</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpProgressStatus" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية قبل التحديث… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Bootstrapper.UpdateWindow.DownloadingStatus" xml:space="preserve">
     <value>جارٍ التنزيل… {percent}%</value>
     <comment>[percent:int]</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.One" xml:space="preserve">
+    <value>تبقّى نحو {count} دقيقة</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.Other" xml:space="preserve">
+    <value>الوقت المتبقي: نحو {count} دقيقة</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.One" xml:space="preserve">
+    <value>تبقّى نحو {count} ثانية</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.Other" xml:space="preserve">
+    <value>الوقت المتبقي: نحو {count} ثانية</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
   </data>
   <data name="Bootstrapper.UpdateWindow.InstallOnQuitStatus" xml:space="preserve">
     <value>تم تنزيل التحديث. سيثبّته Macro Deck عند الإنهاء.</value>
@@ -1344,6 +1446,21 @@
   </data>
   <data name="ConfigFlow.WaitingForAuthorization" xml:space="preserve">
     <value>في انتظار التفويض…</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteTitle" xml:space="preserve">
+    <value>اكتمل التفويض</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteMessage" xml:space="preserve">
+    <value>أغلق هذه النافذة وارجع إلى Macro Deck.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.FailedMessage" xml:space="preserve">
+    <value>ارجع إلى Macro Deck لمعرفة السبب والمحاولة مرة أخرى. يمكن إغلاق هذه النافذة.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedTitle" xml:space="preserve">
+    <value>تعذّرت مطابقة التفويض</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedMessage" xml:space="preserve">
+    <value>يمكن إغلاق هذه النافذة.</value>
   </data>
   <data name="ConfigUi.ViewUnavailable" xml:space="preserve">
     <value>هذا العرض غير متاح مؤقتًا. تابع باستخدام الحقول أدناه.</value>
@@ -2416,6 +2533,9 @@
   <data name="Errors.Actions.ProviderTimeout" xml:space="preserve">
     <value>لم يُجب الإجراء في الوقت المحدد</value>
   </data>
+  <data name="Errors.Actions.SecretApprovalPending" xml:space="preserve">
+    <value>تستخدم هذه الخطوة سرًا وتنتظر الموافقة.</value>
+  </data>
   <data name="Errors.Actions.ServiceUnreachable" xml:space="preserve">
     <value>تعذّر الوصول إلى الخدمة.</value>
   </data>
@@ -2503,6 +2623,9 @@
   </data>
   <data name="Errors.Backup.ImportFailed" xml:space="preserve">
     <value>تعذّر استيراد النسخة الاحتياطية</value>
+  </data>
+  <data name="Errors.Backup.IncompatibleVersion" xml:space="preserve">
+    <value>لا يمكن استعادة هذه النسخة الاحتياطية بهذا الإصدار من Macro Deck</value>
   </data>
   <data name="Errors.Backup.InspectFailed" xml:space="preserve">
     <value>تعذّر فحص النسخة الاحتياطية</value>
@@ -2607,9 +2730,15 @@
   <data name="Errors.Config.FlowExpired" xml:space="preserve">
     <value>انتهت جلسة تدفق الإعداد. ابدأ من جديد.</value>
   </data>
+  <data name="Errors.Config.ForeignSecretReference" xml:space="preserve">
+    <value>تشير هذه القيمة إلى سر لا ينتمي إلى هذا الإعداد.</value>
+  </data>
   <data name="Errors.Config.InvalidEntryId" xml:space="preserve">
     <value>'{id}' ليس معرّف إدخال إعداد صالحًا</value>
     <comment>[id:string]</comment>
+  </data>
+  <data name="Errors.Config.ReconfigureRequiresApp" xml:space="preserve">
+    <value>لا يمكن تغيير إعداد يحتوي على أسرار إلا في تطبيق Macro Deck.</value>
   </data>
   <data name="Errors.Device.LoadFailed" xml:space="preserve">
     <value>تعذّر تحميل الأجهزة</value>
@@ -2832,6 +2961,24 @@
   <data name="Errors.KeyRing.RecoveryKeyInvalid" xml:space="preserve">
     <value>مفتاح الاسترداد هذا لا يفتح هذا التثبيت.</value>
   </data>
+  <data name="Errors.Mcp.ExtensionTokenInvalid" xml:space="preserve">
+    <value>لم يعد من الممكن استخدام رمز الوصول هذا. أنشئ رمزًا جديدًا لتنزيل الإضافة.</value>
+  </data>
+  <data name="Errors.Mcp.ExtensionUnavailable" xml:space="preserve">
+    <value>إضافة Claude Desktop متاحة فقط في تطبيق Macro Deck المثبّت على macOS وWindows.</value>
+  </data>
+  <data name="Errors.Mcp.PolicyProviderInvalid" xml:space="preserve">
+    <value>اختر مزوّدًا.</value>
+  </data>
+  <data name="Errors.Mcp.TokenAlreadyRevoked" xml:space="preserve">
+    <value>تم إبطال رمز الوصول هذا بالفعل.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNameInvalid" xml:space="preserve">
+    <value>أدخل اسمًا لا يتجاوز 64 حرفًا.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNotFound" xml:space="preserve">
+    <value>لا يوجد رمز وصول بهذا المعرّف.</value>
+  </data>
   <data name="Errors.Migration.OperationFailed" xml:space="preserve">
     <value>تعذّر إكمال الترحيل.</value>
   </data>
@@ -2867,6 +3014,15 @@
   </data>
   <data name="Errors.Plugins.InstallBlockedByTakeover" xml:space="preserve">
     <value>استبدلت نسخة تطوير هذا المكوّن الإضافي. أنهِ الاستبدال قبل تثبيته أو تحديثه.</value>
+  </data>
+  <data name="Errors.Plugins.SignerMismatch" xml:space="preserve">
+    <value>هذا المكوّن الإضافي موقّع من ناشر مختلف عن ناشر الإصدار الذي لديك، لذلك لم يُثبَّت.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallDataNotDeleted" xml:space="preserve">
+    <value>تعذّر حذف بعض البيانات المحفوظة للمكوّن الإضافي لأن ملفاً لا يزال قيد الاستخدام، لذا لم يتم إلغاء تثبيته. أغلق البرامج التي تستخدمه ثم حاول مرة أخرى.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallStopFailed" xml:space="preserve">
+    <value>تعذّر إيقاف المكوّن الإضافي، لذا لم تتم إزالة أي شيء. حاول مرة أخرى.</value>
   </data>
   <data name="Errors.Plugins.HostShuttingDown" xml:space="preserve">
     <value>يتم إيقاف تشغيل Macro Deck، لذلك لم يتم تشغيل المكوّن الإضافي.</value>
@@ -2962,6 +3118,12 @@
   </data>
   <data name="Errors.Scripts.NotFound" xml:space="preserve">
     <value>النص البرمجي غير موجود</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalChanged" xml:space="preserve">
+    <value>تغيرت هذه الخطوة في هذه الأثناء. راجعها مرة أخرى.</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalNotFound" xml:space="preserve">
+    <value>لم تعد هذه الخطوة موجودة.</value>
   </data>
   <data name="Errors.Secrets.NotFound" xml:space="preserve">
     <value>السر '{id}' غير موجود</value>
@@ -8610,8 +8772,8 @@
     <value>كتابة النص</value>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextParameterDescription" xml:space="preserve">
-    <value>النص المراد كتابته. يدعم المتغيرات والقوالب، مثل {{ vars.name }}.</value>
-    <comment>The literal {{ vars.name }} is Macro Deck's own template syntax shown as an example, not a translation placeholder.</comment>
+    <value>النص المراد كتابته. يدعم المتغيرات والقوالب، مثل {example}.</value>
+    <comment>{example} is filled with Macro Deck's own template syntax ({{ vars.name }}); keep it as it is.</comment>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextPlaceholder" xml:space="preserve">
     <value>مرحباً بالعالم</value>
@@ -9993,6 +10155,9 @@
   <data name="Integrations.Page.InstallFailed" xml:space="preserve">
     <value>تعذّر تثبيت المكوّن الإضافي</value>
   </data>
+  <data name="Integrations.Page.InstallCancelled" xml:space="preserve">
+    <value>تم إلغاء تحديث الإضافة. لم يتغير شيء.</value>
+  </data>
   <data name="Integrations.Page.InstallFromFileAction" xml:space="preserve">
     <value>التثبيت من ملف…</value>
   </data>
@@ -10056,7 +10221,7 @@
     <value>هل تريد إلغاء تثبيت المكوّن الإضافي؟</value>
   </data>
   <data name="Integrations.Page.UninstallHint" xml:space="preserve">
-    <value>اتركه غير محدّد للاحتفاظ بإعدادات المكوّن الإضافي الخاصة به، فتستأنف من حيث توقفت عند إعادة تثبيته لاحقاً. لا يؤثر ذلك في إعداد {name} في أماكن أخرى من Macro Deck.</value>
+    <value>اتركه غير محدّد للاحتفاظ بإعدادات المكوّن الإضافي الخاصة به وبالحسابات والاتصالات المُعدّة له، فتستأنف من حيث توقفت عند إعادة تثبيته لاحقاً. حدّده لحذفها أيضاً، بما في ذلك بيانات تسجيل الدخول المحفوظة. لا يؤثر ذلك في إعداد {name} في أماكن أخرى من Macro Deck.</value>
   </data>
   <data name="Integrations.Page.UninstallMenuAction" xml:space="preserve">
     <value>إلغاء التثبيت…</value>
@@ -11442,7 +11607,7 @@
     <value>سكون</value>
   </data>
   <data name="Integrations.System.Actions.SupportsVariablesHint" xml:space="preserve">
-    <value>يدعم المتغيرات: {{ vars.name }}</value>
+    <value>يدعم المتغيرات: {example}</value>
   </data>
   <data name="Integrations.System.Actions.VolumeAmount.Label" xml:space="preserve">
     <value>المقدار (%)</value>
@@ -14710,6 +14875,9 @@
   <data name="Nav.Scripts" xml:space="preserve">
     <value>النصوص البرمجية</value>
   </data>
+  <data name="Nav.SecretApprovals" xml:space="preserve">
+    <value>الموافقات</value>
+  </data>
   <data name="Nav.Store" xml:space="preserve">
     <value>المتجر</value>
   </data>
@@ -14803,6 +14971,15 @@
   <data name="Notifications.IconImport.Importing" xml:space="preserve">
     <value>جارٍ استيراد الأيقونات إلى {pack}</value>
   </data>
+  <data name="Notifications.Backup.RestoreFailed" xml:space="preserve">
+    <value>فشلت الاستعادة</value>
+  </data>
+  <data name="Notifications.Backup.RestoreNotCompletedMessage" xml:space="preserve">
+    <value>تعذّرت استعادة النسخة الاحتياطية. بياناتك كما كانت قبل الاستعادة.</value>
+  </data>
+  <data name="Notifications.Backup.RestoreRollbackIncompleteMessage" xml:space="preserve">
+    <value>تعذّرت استعادة النسخة الاحتياطية، ولم يُتمكَّن بعد من إعادة جزء من بياناتك إلى مكانه. أعد تشغيل Macro Deck لإكمال ذلك.</value>
+  </data>
   <data name="Notifications.IconImport.NothingImportable" xml:space="preserve">
     <value>لا يوجد هنا ما يمكن استيراده كأيقونة.</value>
   </data>
@@ -14893,6 +15070,12 @@
   <data name="Notifications.PluginTakeoverRequestedMessage" xml:space="preserve">
     <value>يريد {name} استبدال مكوّن إضافي مثبّت، وهو بانتظار موافقتك في Macro Deck.</value>
     <comment>[name:string]</comment>
+  </data>
+  <data name="Notifications.SecretApprovalPendingMessage" xml:space="preserve">
+    <value>تم تغيير خطوة تستخدم سرًا، وستظل متوقفة مؤقتًا حتى تتم الموافقة عليها.</value>
+  </data>
+  <data name="Notifications.SecretApprovalPendingTitle" xml:space="preserve">
+    <value>هناك خطوة تنتظر الموافقة</value>
   </data>
   <data name="Notifications.StoreAutoUpdateFailed.One" xml:space="preserve">
     <value>فشل التحديث التلقائي لامتداد واحد ({count})</value>
@@ -15547,6 +15730,82 @@
   </data>
   <data name="Scripts.ValidationHint" xml:space="preserve">
     <value>بعض الإجراءات ما زالت تحتاج إلى قيمة.</value>
+  </data>
+  <data name="SecretApprovals.AlsoUsedBy" xml:space="preserve">
+    <value>يستخدمه أيضًا: {owners}</value>
+    <comment>[owners:string]</comment>
+  </data>
+  <data name="SecretApprovals.Approve" xml:space="preserve">
+    <value>موافقة</value>
+  </data>
+  <data name="SecretApprovals.ApproveFailed" xml:space="preserve">
+    <value>تعذّرت الموافقة على الخطوة.</value>
+  </data>
+  <data name="SecretApprovals.ApprovedColumn" xml:space="preserve">
+    <value>المعتمد</value>
+  </data>
+  <data name="SecretApprovals.ChangedBadge" xml:space="preserve">
+    <value>تغيّرت منذ الموافقة</value>
+  </data>
+  <data name="SecretApprovals.ChangedTag" xml:space="preserve">
+    <value>تغيّر</value>
+  </data>
+  <data name="SecretApprovals.EmptyHeading" xml:space="preserve">
+    <value>لا يوجد ما ينتظر الموافقة</value>
+  </data>
+  <data name="SecretApprovals.EmptyMessage" xml:space="preserve">
+    <value>تمت الموافقة على جميع الخطوات التي تستخدم سرًا.</value>
+  </data>
+  <data name="SecretApprovals.Intro" xml:space="preserve">
+    <value>لا تُشغَّل الخطوات التي تستخدم سرًا إلا بعد الموافقة عليها. راجِع ما تغيّر، ثم وافِق عليها.</value>
+  </data>
+  <data name="SecretApprovals.LoadFailed" xml:space="preserve">
+    <value>تعذّر تحميل الموافقات.</value>
+  </data>
+  <data name="SecretApprovals.Loading" xml:space="preserve">
+    <value>جارٍ تحميل الموافقات…</value>
+  </data>
+  <data name="SecretApprovals.NewBadge" xml:space="preserve">
+    <value>خطوة جديدة</value>
+  </data>
+  <data name="SecretApprovals.NotSet" xml:space="preserve">
+    <value>غير محدد</value>
+  </data>
+  <data name="SecretApprovals.NowColumn" xml:space="preserve">
+    <value>الآن</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Automation" xml:space="preserve">
+    <value>أتمتة</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Script" xml:space="preserve">
+    <value>نص برمجي</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Widget" xml:space="preserve">
+    <value>أداة</value>
+  </data>
+  <data name="SecretApprovals.OwnerWithContext" xml:space="preserve">
+    <value>{owner} ({context})</value>
+    <comment>[owner:string] [context:string]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.One" xml:space="preserve">
+    <value>خطوة واحدة تنتظر الموافقة</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.Other" xml:space="preserve">
+    <value>بانتظار الموافقة: {count}</value>
+    <comment>[plural] [count:int]</comment>
+  </data>
+  <data name="SecretApprovals.SecretValue" xml:space="preserve">
+    <value>سر</value>
+  </data>
+  <data name="SecretApprovals.SettingColumn" xml:space="preserve">
+    <value>الإعداد</value>
+  </data>
+  <data name="SecretApprovals.Title" xml:space="preserve">
+    <value>الموافقات</value>
+  </data>
+  <data name="SecretApprovals.UnknownBadge" xml:space="preserve">
+    <value>لم تتم مراجعته بعد</value>
   </data>
   <data name="Settings.About.ApacheLicenseLabel" xml:space="preserve">
     <value>ترخيص Apache 2.0</value>
@@ -16929,6 +17188,107 @@
   <data name="Settings.Logging.MinimumLevelLabel" xml:space="preserve">
     <value>أدنى مستوى</value>
   </data>
+  <data name="Settings.Mcp.ClaudeDesktopAction" xml:space="preserve">
+    <value>تنزيل لـ Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopHint" xml:space="preserve">
+    <value>افتح الملف الذي تم تنزيله في Claude Desktop لتثبيت Macro Deck فيه. يحتوي الملف على هذا الرمز، لذا احذفه بعد التثبيت.</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopSaveFailed" xml:space="preserve">
+    <value>تعذر حفظ إضافة Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClientSelectLabel" xml:space="preserve">
+    <value>عميل الذكاء الاصطناعي</value>
+  </data>
+  <data name="Settings.Mcp.ConfigLabel" xml:space="preserve">
+    <value>إعداد العميل</value>
+  </data>
+  <data name="Settings.Mcp.ConnectedSinceLabel" xml:space="preserve">
+    <value>متصل منذ</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.One" xml:space="preserve">
+    <value>اتصال واحد</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.Other" xml:space="preserve">
+    <value>الاتصالات: {count}</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionsEmpty" xml:space="preserve">
+    <value>لا يوجد عميل ذكاء اصطناعي متصل.</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionsTitle" xml:space="preserve">
+    <value>العملاء المتصلون</value>
+  </data>
+  <data name="Settings.Mcp.Description" xml:space="preserve">
+    <value>اسمح لمساعدي الذكاء الاصطناعي مثل Claude أو VS Code بفحص إعدادك وبنائه وتشغيل الإجراءات عبر Model Context Protocol (MCP). لا يمكنهم قراءة أسرارك أبدًا.</value>
+  </data>
+  <data name="Settings.Mcp.EmptyHeading" xml:space="preserve">
+    <value>لا توجد رموز وصول بعد</value>
+  </data>
+  <data name="Settings.Mcp.EmptyMessage" xml:space="preserve">
+    <value>أنشئ رمزًا وأضفه إلى عميل الذكاء الاصطناعي لتوصيله بـ Macro Deck.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointHint" xml:space="preserve">
+    <value>استخدم هذا العنوان على هذا الكمبيوتر. على كمبيوتر آخر في شبكتك، استبدل 127.0.0.1 بعنوان هذا الكمبيوتر في الشبكة. يحتاج كل اتصال إلى رمز وصول.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointLabel" xml:space="preserve">
+    <value>عنوان الخادم</value>
+  </data>
+  <data name="Settings.Mcp.EndpointUnavailable" xml:space="preserve">
+    <value>خادم MCP غير متاح حاليًا.</value>
+  </data>
+  <data name="Settings.Mcp.Heading" xml:space="preserve">
+    <value>عملاء الذكاء الاصطناعي</value>
+  </data>
+  <data name="Settings.Mcp.LoadFailed" xml:space="preserve">
+    <value>تعذر تحميل إعدادات عملاء الذكاء الاصطناعي</value>
+  </data>
+  <data name="Settings.Mcp.NeverUsed" xml:space="preserve">
+    <value>أبدًا</value>
+  </data>
+  <data name="Settings.Mcp.OtherClients" xml:space="preserve">
+    <value>عملاء آخرون</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAllow" xml:space="preserve">
+    <value>السماح</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAsksFirst" xml:space="preserve">
+    <value>يسأل أولًا عن: {actions}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyConfirm" xml:space="preserve">
+    <value>اسأل أولًا</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDefault" xml:space="preserve">
+    <value>الافتراضي: {mode}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDescription" xml:space="preserve">
+    <value>اختر لكل مزوّد ما إذا كان يمكن لعملاء الذكاء الاصطناعي تشغيل إجراءاته مباشرة أو يجب أن يسألوك أولًا أو لا يمكنهم تشغيلها إطلاقًا. ينطبق ذلك أيضًا على الإجراءات في التدفقات التي ينشئها عملاء الذكاء الاصطناعي.</value>
+  </data>
+  <data name="Settings.Mcp.PolicyOff" xml:space="preserve">
+    <value>إيقاف</value>
+  </data>
+  <data name="Settings.Mcp.PolicySaveFailed" xml:space="preserve">
+    <value>تعذر حفظ الإعداد</value>
+  </data>
+  <data name="Settings.Mcp.PolicyTitle" xml:space="preserve">
+    <value>الإجراءات التي يمكن لعملاء الذكاء الاصطناعي تشغيلها</value>
+  </data>
+  <data name="Settings.Mcp.RefreshAction" xml:space="preserve">
+    <value>تحديث</value>
+  </data>
+  <data name="Settings.Mcp.RemoveConfirmMessage" xml:space="preserve">
+    <value>سيُحذف {name} نهائيًا. لقد أُبطل بالفعل، لذا لا يمكن لأي شيء استخدامه.</value>
+  </data>
+  <data name="Settings.Mcp.RevokeConfirmMessage" xml:space="preserve">
+    <value>يتوقف {name} عن العمل فورًا ويُفصل كل عميل ذكاء اصطناعي يستخدمه.</value>
+  </data>
+  <data name="Settings.Mcp.TokensTitle" xml:space="preserve">
+    <value>رموز الوصول</value>
+  </data>
+  <data name="Settings.Mcp.UnknownClient" xml:space="preserve">
+    <value>عميل غير معروف</value>
+  </data>
   <data name="Settings.Modal.AccountDefaultName" xml:space="preserve">
     <value>حساب Macro Deck</value>
   </data>
@@ -16962,6 +17322,12 @@
   </data>
   <data name="Settings.Network.DiscoveryLabel" xml:space="preserve">
     <value>إظهاره على الشبكة المحلية</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyDescription" xml:space="preserve">
+    <value>فعّل هذا الخيار فقط إذا كان وكيل عكسي مثل nginx أو Caddy أو Traefik يعمل على هذا الكمبيوتر ويمرر الاتصالات إلى Macro Deck. عندها يستخدم Macro Deck العنوان وحالة HTTPS اللذين يبلغ عنهما الوكيل لكل عميل.</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyLabel" xml:space="preserve">
+    <value>خلف وكيل عكسي على هذا الكمبيوتر</value>
   </data>
   <data name="Settings.Network.EnvironmentOverrideNote" xml:space="preserve">
     <value>المتغير MACRO_DECK_PORT مضبوط لهذا التشغيل ويحدد المنفذ ({port}). تبقى القيمة المُعدّة غير مستخدمة إلى أن تُزال هذه الأولوية.</value>
@@ -17282,7 +17648,7 @@
     <value>صدّر مفتاح استرداد النسخة الاحتياطية لحماية حلقة المفاتيح. إلى ذلك الحين تبقى قابلة للقراءة على القرص.</value>
   </data>
   <data name="Settings.Security.LockScreenDescription" xml:space="preserve">
-    <value>يمنع تنفيذ الإجراءات أثناء قفل هذا الكمبيوتر، مهما كان اختيارك هنا.</value>
+    <value>يمنع تنفيذ الإجراءات أثناء قفل هذا الكمبيوتر، مهما كان اختيارك هنا. على Linux، لا يستطيع Macro Deck معرفة أن هذا الكمبيوتر مقفل، لذا تستمر الإجراءات في العمل ولا يتم قفل العملاء المتصلين.</value>
   </data>
   <data name="Settings.Security.LockScreenHeading" xml:space="preserve">
     <value>شاشة القفل</value>
@@ -17816,6 +18182,9 @@
   <data name="Shell.Notifications.Action.OpenLogs" xml:space="preserve">
     <value>فتح السجلات</value>
   </data>
+  <data name="Shell.Notifications.Action.OpenSecretApprovals" xml:space="preserve">
+    <value>مراجعة</value>
+  </data>
   <data name="Shell.Notifications.Action.OpenTroubleshootingGuide" xml:space="preserve">
     <value>استكشاف الأخطاء</value>
   </data>
@@ -17842,6 +18211,15 @@
   </data>
   <data name="Shell.Notifications.MarkAllRead" xml:space="preserve">
     <value>تحديد الكل كمقروء</value>
+  </data>
+  <data name="Shell.Notifications.MoreActions" xml:space="preserve">
+    <value>إجراءات أخرى للإشعارات</value>
+  </data>
+  <data name="Shell.Notifications.Section.RequiresAttention" xml:space="preserve">
+    <value>يتطلب الانتباه</value>
+  </data>
+  <data name="Shell.Notifications.Section.Earlier" xml:space="preserve">
+    <value>سابقًا</value>
   </data>
   <data name="Shell.Notifications.Unread" xml:space="preserve">
     <value>غير مقروء</value>
@@ -17898,6 +18276,25 @@
   <data name="Shell.Splash.PreparingUpdate" xml:space="preserve">
     <value>جارٍ تجهيز التحديث…</value>
   </data>
+  <data name="Shell.Splash.StepInstall" xml:space="preserve">
+    <value>تثبيت التحديث</value>
+  </data>
+  <data name="Shell.Splash.StepBackup" xml:space="preserve">
+    <value>نسخ بياناتك احتياطيًا</value>
+  </data>
+  <data name="Shell.Splash.CancelUpdate" xml:space="preserve">
+    <value>إلغاء التحديث</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackup" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية…</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackupProgress" xml:space="preserve">
+    <value>جارٍ إنشاء نسخة احتياطية… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
+  <data name="Shell.Splash.InstallingUpdate" xml:space="preserve">
+    <value>جارٍ تثبيت التحديث…</value>
+  </data>
   <data name="Shell.Splash.Stopping" xml:space="preserve">
     <value>جارٍ إيقاف Macro Deck…</value>
   </data>
@@ -17909,6 +18306,10 @@
   </data>
   <data name="Store.BackingUpEllipsis" xml:space="preserve">
     <value>جارٍ النسخ الاحتياطي…</value>
+  </data>
+  <data name="Store.BackingUpProgress" xml:space="preserve">
+    <value>جارٍ النسخ الاحتياطي… {percent}%</value>
+    <comment>[percent:int]</comment>
   </data>
   <data name="Store.Cancelled" xml:space="preserve">
     <value>أُلغي</value>
@@ -18012,19 +18413,19 @@
   </data>
   <data name="Store.EtaMinutesLeft.One" xml:space="preserve">
     <value>تبقّى نحو {count} دقيقة</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaMinutesLeft.Other" xml:space="preserve">
     <value>الوقت المتبقي: نحو {count} دقيقة</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.One" xml:space="preserve">
     <value>تبقّى نحو {count} ثانية</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.Other" xml:space="preserve">
     <value>الوقت المتبقي: نحو {count} ثانية</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.Failed" xml:space="preserve">
     <value>فشل</value>
@@ -20737,9 +21138,6 @@
   </data>
   <data name="Widgets.Editor.IconProviderNoIconYet" xml:space="preserve">
     <value>لم يوفّر هذا الإجراء أيقونة بعد.</value>
-  </data>
-  <data name="Widgets.Editor.IconProviderPreviewNote" xml:space="preserve">
-    <value>تعرض هذه المعاينة الأيقونة المضبوطة يدوياً. الزر نفسه سيعرض ما يوفّره المزوّد.</value>
   </data>
   <data name="Widgets.Editor.ImportIconFailed" xml:space="preserve">
     <value>تعذّر استيراد الأيقونة المُفلَتة</value>
@@ -25075,5 +25473,86 @@
   </data>
   <data name="Widgets.Feeds.Sample.Description" xml:space="preserve">
     <value>يظهر هنا ملخص قصير للمقالة.</value>
+  </data>
+  <data name="Mcp.Confirmation.AllowedHeading" xml:space="preserve">
+    <value>تم السماح</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclineAction" xml:space="preserve">
+    <value>رفض</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclinedHeading" xml:space="preserve">
+    <value>تم الرفض</value>
+  </data>
+  <data name="Mcp.Confirmation.Hint" xml:space="preserve">
+    <value>اسمح بذلك فقط إذا طلبت هذا تحديدًا من عميل الذكاء الاصطناعي.</value>
+  </data>
+  <data name="Mcp.Confirmation.InvalidMessage" xml:space="preserve">
+    <value>تمت الإجابة عنه بالفعل أو انتهت صلاحيته. اطلب من عميل الذكاء الاصطناعي المحاولة مرة أخرى.</value>
+  </data>
+  <data name="Mcp.Confirmation.Lead" xml:space="preserve">
+    <value>يطلب {client} من Macro Deck تنفيذ ما يلي:</value>
+  </data>
+  <data name="Mcp.Confirmation.PageTitle" xml:space="preserve">
+    <value>تأكيد طلب عميل الذكاء الاصطناعي</value>
+  </data>
+  <data name="Mcp.Elicitation.Confirm" xml:space="preserve">
+    <value>يحتاج Macro Deck إلى تأكيدك قبل أن يتابع عميل الذكاء الاصطناعي: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmOnPage" xml:space="preserve">
+    <value>اسمح أو ارفض في صفحة Macro Deck التي تفتح في المتصفح: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmTitle" xml:space="preserve">
+    <value>السماح</value>
+  </data>
+  <data name="Mcp.Elicitation.ProtectedVariable" xml:space="preserve">
+    <value>تغيير المتغير {name} الذي تقرؤه كتلة معتمدة تستخدم سرًا</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyAction" xml:space="preserve">
+    <value>{action} ({provider})</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyActionWithValues" xml:space="preserve">
+    <value>{action} ({provider}) بالقيم {values}</value>
+  </data>
+  <data name="Mcp.Elicitation.SecretValue" xml:space="preserve">
+    <value>سر</value>
+  </data>
+  <data name="Mcp.Elicitation.SetSecret" xml:space="preserve">
+    <value>أدخل السر {label} في صفحة Macro Deck التي تُفتح في المتصفح. تبقى القيمة في Macro Deck.</value>
+  </data>
+  <data name="Mcp.Elicitation.SteeringValue" xml:space="preserve">
+    <value>تمرير {name} إلى كتلة معتمدة تستخدم سرًا</value>
+  </data>
+  <data name="Mcp.Extension.Description" xml:space="preserve">
+    <value>يتيح لـ Claude العمل مع إعداد Macro Deck على هذا الكمبيوتر: عرض الأزرار والمجلدات والأتمتة وإنشاؤها وتشغيل الإجراءات. لا يرى Claude أسرارك أبدًا.</value>
+  </data>
+  <data name="Mcp.SecretEntry.EmptyValue" xml:space="preserve">
+    <value>أدخل قيمة.</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidHeading" xml:space="preserve">
+    <value>لم يعد هذا الرابط صالحًا</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidMessage" xml:space="preserve">
+    <value>تم استخدامه بالفعل أو انتهت صلاحيته. اطلب من عميل الذكاء الاصطناعي طلب السر مرة أخرى.</value>
+  </data>
+  <data name="Mcp.SecretEntry.Lead" xml:space="preserve">
+    <value>يطلب {client} من Macro Deck حفظ سر: {label}</value>
+  </data>
+  <data name="Mcp.SecretEntry.PageTitle" xml:space="preserve">
+    <value>إدخال سر</value>
+  </data>
+  <data name="Mcp.SecretEntry.Privacy" xml:space="preserve">
+    <value>لا يرى ما تكتبه إلا Macro Deck. يحصل {client} على مرجع يمكن استخدامه في الإجراءات، ولا يحصل على القيمة أبدًا.</value>
+  </data>
+  <data name="Mcp.SecretEntry.SaveAction" xml:space="preserve">
+    <value>حفظ السر</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedHeading" xml:space="preserve">
+    <value>تم حفظ السر</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedMessage" xml:space="preserve">
+    <value>يمكنك إغلاق علامة التبويب هذه والعودة إلى {client}.</value>
+  </data>
+  <data name="Mcp.SecretEntry.ValueLabel" xml:space="preserve">
+    <value>السر</value>
   </data>
 </root>

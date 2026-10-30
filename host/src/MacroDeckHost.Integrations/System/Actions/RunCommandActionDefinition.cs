@@ -4,6 +4,8 @@ using MacroDeck.Localization;
 using MacroDeck.Sdk.Actions;
 using MacroDeck.Sdk.Logging;
 using MacroDeck.Sdk.Variables;
+using MacroDeckHost.Platform.Applications;
+using MacroDeckHost.Platform.Processes;
 using Serilog;
 
 namespace MacroDeckHost.Integrations.System.Actions;
@@ -18,6 +20,8 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 	}
 
 	public string Id => "run-command";
+
+	public ActionRiskCategory RiskCategory => ActionRiskCategory.Programs;
 	public LocalizedText Name => AppStrings.Integrations.System.Actions.RunCommand.Name();
 	public LocalizedText Description => AppStrings.Integrations.System.Actions.RunCommand.Description();
 
@@ -42,7 +46,7 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 			defaultValue: "default"),
 		ActionParameter.MultilineText("command",
 			AppStrings.Integrations.System.Actions.RunCommand.CommandLabel(),
-			AppStrings.Integrations.System.Actions.SupportsVariablesHint(),
+			AppStrings.Integrations.System.Actions.SupportsVariablesHint("{{ vars.name }}"),
 			required: true),
 		ActionParameter.Folder("workingDirectory",
 			AppStrings.Integrations.System.Actions.WorkingDirectoryLabel()),
@@ -122,10 +126,6 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 		};
 	}
 
-	// A command left running must not hold the host's stdout and stderr: those are the bootstrapper's
-	// pipes, and a write after the bootstrapper quits raises SIGPIPE and kills the launched app.
-	private const string DetachStandardStreams = "exec </dev/null >/dev/null 2>&1; exec \"$0\" \"$@\"";
-
 	internal static bool IsOnPath(string fileName)
 	{
 		if (fileName.Contains(Path.DirectorySeparatorChar))
@@ -193,20 +193,13 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 					AppStrings.Integrations.System.Errors.CommandCouldNotRun());
 			}
 
-			var startInfo = new ProcessStartInfo(detach ? "sh" : fileName)
+			var startInfo = new ProcessStartInfo(fileName)
 			{
 				UseShellExecute = !capture && showWindow,
 				CreateNoWindow = !showWindow,
 				RedirectStandardOutput = capture,
 				RedirectStandardError = capture
 			};
-
-			if (detach)
-			{
-				startInfo.ArgumentList.Add("-c");
-				startInfo.ArgumentList.Add(DetachStandardStreams);
-				startInfo.ArgumentList.Add(fileName);
-			}
 
 			if (useArgumentsString)
 			{
@@ -223,6 +216,8 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 				startInfo.WorkingDirectory = workingDirectory;
 			}
 
+			AppImageEnvironment.RestoreOutside(startInfo);
+
 			Process? process = null;
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
 			if (timeout > 0)
@@ -232,6 +227,11 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 
 			try
 			{
+				if (detach && !OperatingSystem.IsWindows())
+				{
+					return ExitResult(await DetachedProcess.Spawn(startInfo).WaitAsync(cts.Token));
+				}
+
 				process = Process.Start(startInfo);
 				if (process is null)
 				{
@@ -268,13 +268,7 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 					_logger.Warning("Command '{Command}' wrote to stderr: {Error}", command, error);
 				}
 
-				if (process.ExitCode != 0)
-				{
-					return ActionResult.Failed("EXIT_CODE",
-						AppStrings.Integrations.System.Errors.CommandExitCode(process.ExitCode));
-				}
-
-				return ActionResult.Success();
+				return ExitResult(process.ExitCode);
 			}
 			catch (OperationCanceledException) when (!capture)
 			{
@@ -307,6 +301,13 @@ internal sealed class RunCommandActionDefinition : IActionDefinition
 				return ActionResult.Failed(ActionErrorCodes.ProviderError,
 					AppStrings.Integrations.System.Errors.CommandCouldNotRun());
 			}
+		}
+
+		private static ActionResult ExitResult(int exitCode)
+		{
+			return exitCode == 0
+				? ActionResult.Success()
+				: ActionResult.Failed("EXIT_CODE", AppStrings.Integrations.System.Errors.CommandExitCode(exitCode));
 		}
 
 		private static void TryKill(Process? process)

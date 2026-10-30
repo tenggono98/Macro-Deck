@@ -1481,6 +1481,12 @@ public class RemotePluginIntegrationRegistrarTests
 			_byPluginId[snapshot.PluginId] = snapshot;
 			return Task.CompletedTask;
 		}
+
+		public Task RemoveAsync(string pluginId, CancellationToken cancellationToken = default)
+		{
+			_byPluginId.Remove(pluginId);
+			return Task.CompletedTask;
+		}
 	}
 
 	private sealed class RecordingIntegrationRegistry : IIntegrationRegistry
@@ -1737,7 +1743,8 @@ public class RemotePluginIntegrationRegistrarTests
 			bool? tlsEnabled = null,
 			string? tlsMode = null,
 			int? tlsHttpsPort = null,
-			bool? discoveryEnabled = null)
+			bool? discoveryEnabled = null,
+			bool? reverseProxyTrusted = null)
 		{
 			throw new NotSupportedException();
 		}

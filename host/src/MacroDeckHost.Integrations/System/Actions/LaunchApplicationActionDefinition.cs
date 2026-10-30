@@ -15,6 +15,8 @@ internal sealed class LaunchApplicationActionDefinition : IActionDefinition
 	}
 
 	public string Id => "launch-application";
+
+	public ActionRiskCategory RiskCategory => ActionRiskCategory.Programs;
 	public string? Role => ActionRoles.LaunchApplication;
 	public LocalizedText Name => AppStrings.Integrations.System.Actions.LaunchApplication.Name();
 	public LocalizedText Description => AppStrings.Integrations.System.Actions.LaunchApplication.Description();
@@ -40,7 +42,7 @@ internal sealed class LaunchApplicationActionDefinition : IActionDefinition
 				fileExtensions: pathExtensions),
 			ActionParameter.Text("arguments",
 				AppStrings.Integrations.System.Actions.LaunchApplication.ArgumentsLabel(),
-				AppStrings.Integrations.System.Actions.SupportsVariablesHint()),
+				AppStrings.Integrations.System.Actions.SupportsVariablesHint("{{ vars.name }}")),
 			ActionParameter.Folder("workingDirectory",
 				AppStrings.Integrations.System.Actions.WorkingDirectoryLabel(),
 				AppStrings.Integrations.System.Actions.LaunchApplication.WorkingDirectoryDescription()),

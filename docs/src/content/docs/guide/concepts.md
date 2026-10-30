@@ -73,7 +73,8 @@ asks you to confirm first. The dialog says whether the action worked, or why Twi
 - **Twitch did not allow this**: reconnect the Twitch account in **Integrations** and try again.
 
 While the computer running Macro Deck is locked, the chat dialog keeps showing the chat, but tapping a message
-shows that the computer is locked instead of selecting it. Unlock the computer, as for any other action.
+shows that the computer is locked instead of selecting it. Unlock the computer, as for any other action. This
+applies to Windows and macOS, see [Buttons still work while a Linux computer is locked](/guide/troubleshooting/#buttons-still-work-while-a-linux-computer-is-locked).
 
 On YouTube, **Unban** only lifts bans you made through Macro Deck during the current broadcast; lift other bans
 in YouTube Studio. See [YouTube](/guide/youtube/#moderating-youtube-chat).
@@ -204,7 +205,8 @@ The details dialog shows when an event is, its calendar, account and provider, t
 description and who is invited, with their answers. A very long description is shortened, and the
 dialog lists the first 100 people invited. **Join meeting** opens the meeting link on the
 computer running Macro Deck, not on the device you pressed. While that computer is locked, Macro Deck
-refuses to open the link. The dialog opens on the device you pressed.
+refuses to open the link on Windows and macOS, but not on Linux, see
+[Buttons still work while a Linux computer is locked](/guide/troubleshooting/#buttons-still-work-while-a-linux-computer-is-locked). The dialog opens on the device you pressed.
 
 Press a calendar widget in the **Next event** layout to open the details of the event it shows. Press an
 **Agenda** to open a dialog that lists its upcoming events by day, for its **Calendars**, **Days** and **Show all-day
@@ -484,6 +486,10 @@ Values you can show and use anywhere:
 
 Show one in a label with `{{ vars.deaths }}`, like the **Deaths: 3** button above.
 
+A variable that is unavailable, for example while its integration is offline, shows `n/v`. So does a
+label that cannot be shown, such as `{{ vars.cpu | round: 1 }}` while `cpu` is unavailable or a
+template with a typo; the other buttons on the page keep updating.
+
 A user variable is **Text**, **Numeric**, **Boolean** or **Color**. A Color variable holds a color such as
 `#3366ff` that widgets, folder backgrounds and the accent color can follow, see
 [Colors from a variable](/guide/tips/#colors-from-a-variable).
@@ -731,7 +737,7 @@ The **Join Meeting** action opens the meeting link of the event that is running 
 picks the one starting closest to now. **Calendar** limits it to one calendar. All-day events and events
 without a meeting link are skipped, and when nothing qualifies, the action fails with **No event with a
 meeting link is running or starting soon**. Like the button in the details dialog, it does not open the
-link while the computer is locked. Put it on a key of a hardware deck, or run it from an automation on
+link while the computer is locked, except on Linux. Put it on a key of a hardware deck, or run it from an automation on
 **Event Starts Soon** with a short lead time to join meetings automatically.
 
 Meeting links come from invitations, and anyone can send you an invitation, so an automation that joins
@@ -799,9 +805,11 @@ Macro Deck tells you about things that need your attention in three ways.
   a small form. Whatever you press on one screen closes the dialog on every other screen too, and the
   integration gets your answer once.
 - **The notifications list** in the desktop app keeps what happened: login problems, available updates,
-  results of imports and whatever integrations report. Entries you have not looked at are marked as unread.
-  Use **Mark as read** on an entry, or **Mark all as read**. Closing a short message or a dialog never removes its
-  entry from the list, and removing an entry never closes a message that is still showing.
+  results of imports and whatever integrations report. Entries that wait for you, such as an update ready to
+  install or a plugin asking for access, are listed first under **Requires attention**. Entries you have not
+  looked at carry a dot: click it to mark that entry as read. **Mark all as read** and **Clear all** are in the
+  **⋮** menu at the top of the list. Closing a short message or a dialog never removes its entry from the list,
+  and removing an entry never closes a message that is still showing.
 
 Short messages and dialogs appear in the desktop app, in the web client and in the Companion app. A screen that
 connects while a dialog is open shows it right away. Each message says where it comes from: Macro Deck itself,
@@ -935,6 +943,10 @@ installed icon pack's page has **Open in Library**. The other way round, a plugi
 **Integrations** and a Store icon pack under **Library > Icon Packs** have **View in Store**, for the
 description and release notes. An installed plugin is uninstalled from the **General** details of its page
 under **Integrations**, or from its Store page. Uninstalling a plugin also removes the variables it provided.
+On its **Integrations** page you can also tick **Also delete the plugin's stored data**: that deletes the
+plugin's own files and the accounts and connections set up for it, saved sign-ins included. Uninstalling from
+the Store keeps them, so a later reinstall picks up where you left off. If one of its files is still in use, the
+plugin stays installed and a message says its data could not be deleted; close whatever uses it and try again.
 
 A `macrodeck://` link to an item opens its page in Macro Deck, and a message appears if the item is no longer
 in the Store. See [Store links](/reference/store-links/) for the details, including the AppImage limitation.

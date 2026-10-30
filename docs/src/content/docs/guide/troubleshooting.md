@@ -121,14 +121,27 @@ it again with that package manager instead, for example `sudo apt install --rein
 
 ## Buttons do nothing and devices show a lock screen
 
-Macro Deck does not run actions while the computer it runs on is locked. Unlock the computer and try
-again.
+On Windows and macOS, Macro Deck does not run actions while the computer it runs on is locked. Unlock the
+computer and try again. Linux works differently, see
+[Buttons still work while a Linux computer is locked](#buttons-still-work-while-a-linux-computer-is-locked).
 
 Connected devices show a lock screen for as long as the computer is locked. You can keep the deck
 visible instead by turning off **Lock clients when this computer is locked** in
 **Settings > Security**. Actions stay blocked either way, and so do widgets and dialogs that come from a
 plugin or an integration, such as the Twitch and YouTube chat: pressing one shows that the computer is
 locked, and the widget keeps showing its content.
+
+## Buttons still work while a Linux computer is locked
+
+On Linux, Macro Deck cannot tell whether the computer is locked, so locking it changes nothing for Macro
+Deck. Connected devices keep showing the deck, and anyone using one of them or a hardware deck can still press
+buttons, run scripts and use widgets. Their actions run on the locked computer as if it were unlocked, for
+example opening websites, starting programs or running commands. **Lock clients when this computer is
+locked** in **Settings > Security** has no effect there, and the **System** integration's **Locked** variable
+(`system_locked`) has no value.
+
+If nobody else should be able to use the computer through Macro Deck while you are away, quit Macro Deck
+before you leave it.
 
 ## A dialog says it cannot be shown
 
@@ -239,6 +252,11 @@ and cannot check Companion licenses; both come back once the service runs again.
 with this computer shows it as offline until then, without asking you to pair it again, and keeps its
 own license or trial.
 
+If the window says this data folder was last used by a newer version of Macro Deck, you started an older
+version than the one that used it last, for example after switching back to an older release. Macro Deck stops
+before it changes anything, so your data is unchanged: install the newest Macro Deck you used with this data
+again.
+
 If the host does not start although nothing seems to use the port, a host left over from an earlier
 Macro Deck may still be running and can no longer be taken over. End the **Macro Deck Host** process in
 Task Manager or Activity Monitor, then choose **Restart Macro Deck**.
@@ -256,6 +274,15 @@ that vouches for it. The installed version keeps working, but Macro Deck refuses
 anything signed with that certificate. Wait for an update signed with a new certificate, or uninstall the
 plugin if you no longer trust it. Installing or updating it from the Store fails with the message that
 Macro Deck could not verify who published the package.
+
+## A plugin update says it is signed by a different publisher
+
+The package or Store update was signed by someone other than the publisher of the version you already have,
+so Macro Deck kept your installed version. A package that claims to be an update of a plugin but comes from
+another publisher could take over everything that plugin stores, such as its accounts and settings. Get
+updates from the plugin's own publisher. If the plugin really changed hands, or you want to switch to the
+other publisher's package, uninstall the plugin first and tick **Also delete the plugin's stored data**,
+then install it again.
 
 ## A reverse proxy or firewall blocks a connection to a service
 
@@ -495,6 +522,48 @@ look different from an image editor:
 - Buttons show an animated icon as a GIF, which counts time in hundredths of a second. Frames shorter
   than 20 ms, such as in an animation of 60 frames per second, are combined: the animation keeps its
   length but shows fewer frames.
+
+## An AI client cannot connect
+
+First check that Macro Deck is running. If Macro Deck asks you to **Enter your recovery key**, its key
+ring is locked and AI clients cannot connect until you unlock it with your backup recovery key. Then look
+for the case that fits.
+
+- **It stopped connecting after you changed the port** in **Settings > Network**. Copy **Server
+  address** from **Settings > AI clients** into your client's configuration again. The Claude Desktop
+  extension finds Macro Deck on its own. A request that was running while Macro Deck restarted can fail
+  once; ask again.
+- **It runs on another computer and cannot reach Macro Deck.** Check that the configuration uses the
+  network address of the computer running Macro Deck instead of `127.0.0.1`, and go through the network
+  checks under [A device cannot connect](#a-device-cannot-connect).
+- **It is rejected (401 Unauthorized), or the extension says the access token was rejected.** The token
+  was revoked or removed. Create a new token in **Settings > AI clients** and update your client's
+  configuration, or install the Claude Desktop extension again from a new download.
+- **Claude Desktop lost Macro Deck after a Macro Deck update.** The update closes the extension so it can
+  replace Macro Deck. Turn the extension off and on again in Claude Desktop's settings, or restart Claude
+  Desktop.
+
+See [AI clients](/guide/ai-clients/) for how clients connect.
+
+## An AI client cannot do something
+
+The client usually shows the code Macro Deck answered with. The full list is in
+[the developer reference](/reference/mcp/#common-error-codes).
+
+- **It cannot ask you for a secret** (`ELICITATION_UNAVAILABLE`). Your client cannot open Macro Deck's
+  secret page, so it cannot store a new secret. Secret references it makes up itself are refused
+  (`FOREIGN_SECRET_REF`). Enter the secret in Macro Deck yourself, or use a client that supports URL
+  elicitation.
+- **The secret page says the request expired** (`SECRET_ENTRY_EXPIRED`). A secret page works once and for
+  10 minutes. Ask the client to try again.
+- **An action is refused** (`PROVIDER_BLOCKED`). Its provider is set to **Off** under **Actions AI clients
+  may run** in **Settings > AI clients**.
+- **An action that asks first did not run** (`CONFIRMATION_DECLINED`). You chose **Decline**, or the
+  Macro Deck page for clients without their own confirmation dialog was not answered within 5 minutes.
+  Ask the client to try again and answer the question.
+- **It cannot ask you before an action** (`CONFIRMATION_UNAVAILABLE`). The provider is set to **Ask
+  first**, but your client can show neither its own question nor a Macro Deck page. Set the provider to
+  **Allow** if the client may run its actions without asking, or use a client that can ask.
 
 ## Installing on Linux
 

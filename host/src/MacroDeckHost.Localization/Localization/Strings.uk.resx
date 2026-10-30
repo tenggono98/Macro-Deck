@@ -779,6 +779,43 @@
   <data name="Backup.Progress.ByteDetail" xml:space="preserve">
     <value>{processed} з {total}</value>
   </data>
+  <data name="Backup.Progress.RestoreCancelledToast" xml:space="preserve">
+    <value>Відновлення скасовано</value>
+  </data>
+  <data name="Backup.Progress.CancelledToast" xml:space="preserve">
+    <value>Резервне копіювання скасовано</value>
+  </data>
+  <data name="Backup.Progress.CancelRestore" xml:space="preserve">
+    <value>Скасувати відновлення</value>
+  </data>
+  <data name="Backup.Progress.Cancel" xml:space="preserve">
+    <value>Скасувати резервне копіювання</value>
+  </data>
+  <data name="Backup.Progress.StageVerifying" xml:space="preserve">
+    <value>Перевірка резервної копії</value>
+  </data>
+  <data name="Backup.Progress.StageCopying" xml:space="preserve">
+    <value>Копіювання та шифрування даних</value>
+  </data>
+  <data name="Backup.Progress.StagePreparing" xml:space="preserve">
+    <value>Підготовка</value>
+  </data>
+  <data name="Backup.Progress.TitleRestoring" xml:space="preserve">
+    <value>Відновлення резервної копії</value>
+  </data>
+  <data name="Backup.Progress.TitleCreating" xml:space="preserve">
+    <value>Створення резервної копії</value>
+  </data>
+  <data name="Backup.Progress.CheckingBackup" xml:space="preserve">
+    <value>Перевірка резервної копії</value>
+  </data>
+  <data name="Backup.Progress.CreatingSafetyBackup" xml:space="preserve">
+    <value>Створення страхової копії</value>
+  </data>
+  <data name="Backup.Progress.Percent" xml:space="preserve">
+    <value>{percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Backup.RecoveryKey.CreatedTitle" xml:space="preserve">
     <value>Збережіть ключ відновлення</value>
   </data>
@@ -842,8 +879,14 @@
   <data name="Backup.Trigger.Scheduled" xml:space="preserve">
     <value>За розкладом</value>
   </data>
+  <data name="Backup.Warning.AccountsWithoutIntegrations" xml:space="preserve">
+    <value>Облікові записи та пристрої відновлюються без інтеграцій і секретів. Якщо резервну копію створено на іншому комп'ютері або давно, усі сеанси буде завершено, а пристрої доведеться сполучити знову.</value>
+  </data>
   <data name="Backup.Warning.AccountsWithoutProfiles" xml:space="preserve">
     <value>Облікові записи та пристрої відновлюються без профілів. Пристрій, який вказує на стартовий профіль, що більше не існує, переходить до профілю за замовчуванням.</value>
+  </data>
+  <data name="Backup.Warning.AppSettingsWithoutIntegrations" xml:space="preserve">
+    <value>Налаштування застосунку відновлюються без інтеграцій і секретів. Якщо резервну копію створено на іншому комп'ютері або давно, може знадобитися знову налаштувати HTTPS.</value>
   </data>
   <data name="Backup.Warning.AutomationsWithoutIntegrations" xml:space="preserve">
     <value>Автоматизації відновлюються без інтеграцій і секретів.</value>
@@ -856,6 +899,12 @@
   </data>
   <data name="Backup.Warning.Generic" xml:space="preserve">
     <value>{group} відновлюється без: {dependency}, тому окремі частини можуть не працювати.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAccounts" xml:space="preserve">
+    <value>Інтеграції та секрети відновлюються без облікових записів. Якщо резервну копію створено на іншому комп'ютері або давно, усі сеанси буде завершено, а пристрої доведеться сполучити знову.</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAppSettings" xml:space="preserve">
+    <value>Інтеграції та секрети відновлюються без налаштувань застосунку. Якщо резервну копію створено на іншому комп'ютері або давно, може знадобитися знову налаштувати HTTPS.</value>
   </data>
   <data name="Backup.Warning.PluginsWithoutIntegrations" xml:space="preserve">
     <value>Плагіни відновлюються без інтеграцій і секретів. Облікових даних плагінів не буде.</value>
@@ -883,6 +932,9 @@
   </data>
   <data name="Bootstrapper.Errors.CryptographyUnavailable" xml:space="preserve">
     <value>Macro Deck не вдалося використати службу криптографії операційної системи. У Windows переконайтеся, що службу CNG Key Isolation (KeyIso) запущено, або перезавантажте комп'ютер.</value>
+  </data>
+  <data name="Bootstrapper.Errors.DatabaseFromNewerVersion" xml:space="preserve">
+    <value>Цю папку даних востаннє використовувала новіша версія Macro Deck. Установіть цю версію знову; дані не змінено.</value>
   </data>
   <data name="Bootstrapper.Errors.HostBinaryMissing" xml:space="preserve">
     <value>Відсутній виконуваний файл хоста Macro Deck:
@@ -1011,6 +1063,27 @@
   <data name="Bootstrapper.InstallationDamaged.Title" xml:space="preserve">
     <value>Macro Deck оновлено не повністю</value>
   </data>
+  <data name="Bootstrapper.Mcp.TokenMissing" xml:space="preserve">
+    <value>Змінну {variable} не задано. Установіть розширення для Claude Desktop знову в розділі Налаштування &gt; ШІ-клієнти.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotRunning" xml:space="preserve">
+    <value>Macro Deck не запущено. Запустіть Macro Deck і спробуйте ще раз.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.TokenRejected" xml:space="preserve">
+    <value>Macro Deck відхилив токен доступу: його відкликано або видалено. Створіть новий токен у розділі Налаштування &gt; ШІ-клієнти та встановіть розширення знову.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Unavailable" xml:space="preserve">
+    <value>Сервер MCP у Macro Deck недоступний: застосунок заблоковано або він не підтримує ШІ-клієнтів. Розблокуйте Macro Deck і спробуйте ще раз.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Refused" xml:space="preserve">
+    <value>Macro Deck відхилив запит (HTTP {status}).</value>
+  </data>
+  <data name="Bootstrapper.Mcp.ConnectionLost" xml:space="preserve">
+    <value>З'єднання з Macro Deck перервалося до отримання відповіді. Запит міг виконатися, тому перевірте це перед повтором.</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotInitialized" xml:space="preserve">
+    <value>Сеанс MCP не ініціалізовано.</value>
+  </data>
   <data name="Bootstrapper.Menu.About" xml:space="preserve">
     <value>Про Macro Deck</value>
   </data>
@@ -1112,6 +1185,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Bootstrapper.Update.Later" xml:space="preserve">
     <value>Пізніше</value>
   </data>
+  <data name="Bootstrapper.Update.BackupCancelled" xml:space="preserve">
+    <value>Оновлення не встановлено, бо його резервне копіювання скасовано.</value>
+  </data>
   <data name="Bootstrapper.Update.LinuxNotSupported" xml:space="preserve">
     <value>Macro Deck на Linux не встановлює оновлення самостійно. Завантажте нову версію з {downloadPageUrl} і оновіть встановлений AppImage, DEB або RPM.</value>
   </data>
@@ -1145,9 +1221,35 @@ Macro Deck встановлено з репозиторію APT, тож післ
     <value>Зараз у вас {version}</value>
     <comment>[version:string]</comment>
   </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpStatus" xml:space="preserve">
+    <value>Створення резервної копії перед оновленням…</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.CancelBackup" xml:space="preserve">
+    <value>Скасувати оновлення</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpProgressStatus" xml:space="preserve">
+    <value>Створення резервної копії перед оновленням… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Bootstrapper.UpdateWindow.DownloadingStatus" xml:space="preserve">
     <value>Завантаження… {percent}%</value>
     <comment>[percent:int]</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.One" xml:space="preserve">
+    <value>приблизно {count} хв залишилось</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.Other" xml:space="preserve">
+    <value>приблизно {count} хв залишилось</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.One" xml:space="preserve">
+    <value>приблизно {count} с залишилось</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.Other" xml:space="preserve">
+    <value>приблизно {count} с залишилось</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
   </data>
   <data name="Bootstrapper.UpdateWindow.InstallOnQuitStatus" xml:space="preserve">
     <value>Оновлення завантажено. Macro Deck встановить його, коли ви закриєте програму.</value>
@@ -1344,6 +1446,21 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="ConfigFlow.WaitingForAuthorization" xml:space="preserve">
     <value>Очікування авторизації…</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteTitle" xml:space="preserve">
+    <value>Авторизацію завершено</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteMessage" xml:space="preserve">
+    <value>Закрийте це вікно й поверніться до Macro Deck.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.FailedMessage" xml:space="preserve">
+    <value>Поверніться до Macro Deck, щоб дізнатися причину й повторити спробу. Це вікно можна закрити.</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedTitle" xml:space="preserve">
+    <value>Не вдалося зіставити авторизацію</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedMessage" xml:space="preserve">
+    <value>Це вікно можна закрити.</value>
   </data>
   <data name="ConfigUi.ViewUnavailable" xml:space="preserve">
     <value>Це подання тимчасово недоступне. Продовжте з полями нижче.</value>
@@ -2416,6 +2533,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Errors.Actions.ProviderTimeout" xml:space="preserve">
     <value>Дія не відповіла вчасно</value>
   </data>
+  <data name="Errors.Actions.SecretApprovalPending" xml:space="preserve">
+    <value>Цей крок використовує секрет і очікує на схвалення.</value>
+  </data>
   <data name="Errors.Actions.ServiceUnreachable" xml:space="preserve">
     <value>Не вдалося зв'язатися зі службою.</value>
   </data>
@@ -2503,6 +2623,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Errors.Backup.ImportFailed" xml:space="preserve">
     <value>Не вдалося імпортувати резервну копію</value>
+  </data>
+  <data name="Errors.Backup.IncompatibleVersion" xml:space="preserve">
+    <value>Цю резервну копію неможливо відновити в цій версії Macro Deck</value>
   </data>
   <data name="Errors.Backup.InspectFailed" xml:space="preserve">
     <value>Не вдалося перевірити резервну копію</value>
@@ -2607,9 +2730,15 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Errors.Config.FlowExpired" xml:space="preserve">
     <value>Сеанс потоку налаштування завершився. Почніть знову.</value>
   </data>
+  <data name="Errors.Config.ForeignSecretReference" xml:space="preserve">
+    <value>Це значення посилається на секрет, який не належить до цієї конфігурації.</value>
+  </data>
   <data name="Errors.Config.InvalidEntryId" xml:space="preserve">
     <value>«{id}» не є дійсним ідентифікатором запису конфігурації</value>
     <comment>[id:string]</comment>
+  </data>
+  <data name="Errors.Config.ReconfigureRequiresApp" xml:space="preserve">
+    <value>Конфігурацію із секретами можна змінити лише в застосунку Macro Deck.</value>
   </data>
   <data name="Errors.Device.LoadFailed" xml:space="preserve">
     <value>Не вдалося завантажити пристрої</value>
@@ -2832,6 +2961,24 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Errors.KeyRing.RecoveryKeyInvalid" xml:space="preserve">
     <value>Цей ключ відновлення не розблоковує цю інсталяцію.</value>
   </data>
+  <data name="Errors.Mcp.ExtensionTokenInvalid" xml:space="preserve">
+    <value>Цей токен доступу більше не можна використовувати. Створіть новий токен, щоб завантажити розширення.</value>
+  </data>
+  <data name="Errors.Mcp.ExtensionUnavailable" xml:space="preserve">
+    <value>Розширення для Claude Desktop доступне лише у встановленому застосунку Macro Deck для macOS і Windows.</value>
+  </data>
+  <data name="Errors.Mcp.PolicyProviderInvalid" xml:space="preserve">
+    <value>Виберіть постачальника.</value>
+  </data>
+  <data name="Errors.Mcp.TokenAlreadyRevoked" xml:space="preserve">
+    <value>Цей токен доступу вже відкликано.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNameInvalid" xml:space="preserve">
+    <value>Введіть назву довжиною не більше 64 символів.</value>
+  </data>
+  <data name="Errors.Mcp.TokenNotFound" xml:space="preserve">
+    <value>Токена доступу з таким ідентифікатором не існує.</value>
+  </data>
   <data name="Errors.Migration.OperationFailed" xml:space="preserve">
     <value>Міграцію не вдалося завершити.</value>
   </data>
@@ -2867,6 +3014,15 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Errors.Plugins.InstallBlockedByTakeover" xml:space="preserve">
     <value>Збірка для розробки перейняла цей плагін. Завершіть перехоплення, перш ніж встановлювати або оновлювати його.</value>
+  </data>
+  <data name="Errors.Plugins.SignerMismatch" xml:space="preserve">
+    <value>Цей плагін підписано іншим видавцем, ніж встановлену у вас версію, тому його не встановлено.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallDataNotDeleted" xml:space="preserve">
+    <value>Не вдалося видалити частину збережених даних плагіна: файл досі використовується, тому плагін не видалено. Закрийте програми, які його використовують, і спробуйте ще раз.</value>
+  </data>
+  <data name="Errors.Plugins.UninstallStopFailed" xml:space="preserve">
+    <value>Не вдалося зупинити плагін, тому нічого не видалено. Спробуйте ще раз.</value>
   </data>
   <data name="Errors.Plugins.HostShuttingDown" xml:space="preserve">
     <value>Macro Deck завершує роботу, тому плагін не було запущено.</value>
@@ -2962,6 +3118,12 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Errors.Scripts.NotFound" xml:space="preserve">
     <value>Скрипт не знайдено</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalChanged" xml:space="preserve">
+    <value>Тим часом цей крок змінився. Перегляньте його ще раз.</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalNotFound" xml:space="preserve">
+    <value>Цей крок більше не існує.</value>
   </data>
   <data name="Errors.Secrets.NotFound" xml:space="preserve">
     <value>Секрет «{id}» не знайдено</value>
@@ -8610,8 +8772,8 @@ Macro Deck встановлено з репозиторію APT, тож післ
     <value>Ввести текст</value>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextParameterDescription" xml:space="preserve">
-    <value>Текст для введення. Підтримує змінні та шаблони, наприклад {{ vars.name }}.</value>
-    <comment>The literal {{ vars.name }} is Macro Deck's own template syntax shown as an example, not a translation placeholder.</comment>
+    <value>Текст для введення. Підтримує змінні та шаблони, наприклад {example}.</value>
+    <comment>{example} is filled with Macro Deck's own template syntax ({{ vars.name }}); keep it as it is.</comment>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextPlaceholder" xml:space="preserve">
     <value>Привіт, світе</value>
@@ -9993,6 +10155,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Integrations.Page.InstallFailed" xml:space="preserve">
     <value>Не вдалося встановити плагін</value>
   </data>
+  <data name="Integrations.Page.InstallCancelled" xml:space="preserve">
+    <value>Оновлення плагіна скасовано. Нічого не змінено.</value>
+  </data>
   <data name="Integrations.Page.InstallFromFileAction" xml:space="preserve">
     <value>Встановити з файлу…</value>
   </data>
@@ -10056,7 +10221,7 @@ Macro Deck встановлено з репозиторію APT, тож післ
     <value>Видалити плагін?</value>
   </data>
   <data name="Integrations.Page.UninstallHint" xml:space="preserve">
-    <value>Залиште вимкненим, щоб зберегти власні налаштування плагіна: після повторного встановлення він продовжить із того місця, де ви зупинилися. Це не впливає на те, як {name} налаштовано в інших місцях Macro Deck.</value>
+    <value>Залиште вимкненим, щоб зберегти власні налаштування плагіна, а також налаштовані для нього облікові записи й підключення: після повторного встановлення він продовжить із того місця, де ви зупинилися. Якщо ввімкнути, їх також буде видалено разом зі збереженими даними для входу. Це не впливає на те, як {name} налаштовано в інших місцях Macro Deck.</value>
   </data>
   <data name="Integrations.Page.UninstallMenuAction" xml:space="preserve">
     <value>Видалити…</value>
@@ -11442,7 +11607,7 @@ Macro Deck встановлено з репозиторію APT, тож післ
     <value>Режим сну</value>
   </data>
   <data name="Integrations.System.Actions.SupportsVariablesHint" xml:space="preserve">
-    <value>Підтримуються змінні: {{ vars.name }}</value>
+    <value>Підтримуються змінні: {example}</value>
   </data>
   <data name="Integrations.System.Actions.VolumeAmount.Label" xml:space="preserve">
     <value>Величина (%)</value>
@@ -14710,6 +14875,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Nav.Scripts" xml:space="preserve">
     <value>Скрипти</value>
   </data>
+  <data name="Nav.SecretApprovals" xml:space="preserve">
+    <value>Схвалення</value>
+  </data>
   <data name="Nav.Store" xml:space="preserve">
     <value>Магазин</value>
   </data>
@@ -14803,6 +14971,15 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Notifications.IconImport.Importing" xml:space="preserve">
     <value>Імпорт значків до {pack}</value>
   </data>
+  <data name="Notifications.Backup.RestoreFailed" xml:space="preserve">
+    <value>Не вдалося виконати відновлення</value>
+  </data>
+  <data name="Notifications.Backup.RestoreNotCompletedMessage" xml:space="preserve">
+    <value>Не вдалося відновити резервну копію. Дані залишилися в тому стані, в якому були до відновлення.</value>
+  </data>
+  <data name="Notifications.Backup.RestoreRollbackIncompleteMessage" xml:space="preserve">
+    <value>Не вдалося відновити резервну копію, і частину даних поки не вдалося повернути на місце. Перезапустіть Macro Deck, щоб завершити повернення.</value>
+  </data>
   <data name="Notifications.IconImport.NothingImportable" xml:space="preserve">
     <value>Нічого з цього не можна імпортувати як значок.</value>
   </data>
@@ -14893,6 +15070,12 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Notifications.PluginTakeoverRequestedMessage" xml:space="preserve">
     <value>{name} хоче замінити встановлений плагін і очікує на ваше підтвердження в Macro Deck.</value>
     <comment>[name:string]</comment>
+  </data>
+  <data name="Notifications.SecretApprovalPendingMessage" xml:space="preserve">
+    <value>Крок, що використовує секрет, було змінено, і він призупинений до схвалення.</value>
+  </data>
+  <data name="Notifications.SecretApprovalPendingTitle" xml:space="preserve">
+    <value>Крок очікує на схвалення</value>
   </data>
   <data name="Notifications.StoreAutoUpdateFailed.One" xml:space="preserve">
     <value>Не вдалося автоматично оновити {count} розширення</value>
@@ -15547,6 +15730,82 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Scripts.ValidationHint" xml:space="preserve">
     <value>Деяким діям ще потрібне значення.</value>
+  </data>
+  <data name="SecretApprovals.AlsoUsedBy" xml:space="preserve">
+    <value>Також використовується: {owners}</value>
+    <comment>[owners:string]</comment>
+  </data>
+  <data name="SecretApprovals.Approve" xml:space="preserve">
+    <value>Схвалити</value>
+  </data>
+  <data name="SecretApprovals.ApproveFailed" xml:space="preserve">
+    <value>Не вдалося схвалити крок.</value>
+  </data>
+  <data name="SecretApprovals.ApprovedColumn" xml:space="preserve">
+    <value>Схвалено</value>
+  </data>
+  <data name="SecretApprovals.ChangedBadge" xml:space="preserve">
+    <value>Змінено після схвалення</value>
+  </data>
+  <data name="SecretApprovals.ChangedTag" xml:space="preserve">
+    <value>Змінено</value>
+  </data>
+  <data name="SecretApprovals.EmptyHeading" xml:space="preserve">
+    <value>Немає кроків, що очікують на схвалення</value>
+  </data>
+  <data name="SecretApprovals.EmptyMessage" xml:space="preserve">
+    <value>Усі кроки, що використовують секрет, схвалено.</value>
+  </data>
+  <data name="SecretApprovals.Intro" xml:space="preserve">
+    <value>Кроки, що використовують секрет, виконуються лише після схвалення. Перевірте, що змінилося, і схваліть їх.</value>
+  </data>
+  <data name="SecretApprovals.LoadFailed" xml:space="preserve">
+    <value>Не вдалося завантажити схвалення.</value>
+  </data>
+  <data name="SecretApprovals.Loading" xml:space="preserve">
+    <value>Завантаження схвалень…</value>
+  </data>
+  <data name="SecretApprovals.NewBadge" xml:space="preserve">
+    <value>Новий крок</value>
+  </data>
+  <data name="SecretApprovals.NotSet" xml:space="preserve">
+    <value>Не задано</value>
+  </data>
+  <data name="SecretApprovals.NowColumn" xml:space="preserve">
+    <value>Зараз</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Automation" xml:space="preserve">
+    <value>Автоматизація</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Script" xml:space="preserve">
+    <value>Скрипт</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Widget" xml:space="preserve">
+    <value>Віджет</value>
+  </data>
+  <data name="SecretApprovals.OwnerWithContext" xml:space="preserve">
+    <value>{owner} ({context})</value>
+    <comment>[owner:string] [context:string]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.One" xml:space="preserve">
+    <value>{count} крок очікує на схвалення</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.Other" xml:space="preserve">
+    <value>Очікують на схвалення: {count}</value>
+    <comment>[plural] [count:int]</comment>
+  </data>
+  <data name="SecretApprovals.SecretValue" xml:space="preserve">
+    <value>Секрет</value>
+  </data>
+  <data name="SecretApprovals.SettingColumn" xml:space="preserve">
+    <value>Параметр</value>
+  </data>
+  <data name="SecretApprovals.Title" xml:space="preserve">
+    <value>Схвалення</value>
+  </data>
+  <data name="SecretApprovals.UnknownBadge" xml:space="preserve">
+    <value>Ще не перевірено</value>
   </data>
   <data name="Settings.About.ApacheLicenseLabel" xml:space="preserve">
     <value>Ліцензія Apache 2.0</value>
@@ -16929,6 +17188,107 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Settings.Logging.MinimumLevelLabel" xml:space="preserve">
     <value>Мінімальний рівень</value>
   </data>
+  <data name="Settings.Mcp.ClaudeDesktopAction" xml:space="preserve">
+    <value>Завантажити для Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopHint" xml:space="preserve">
+    <value>Відкрийте завантажений файл у Claude Desktop, щоб установити туди Macro Deck. Файл містить цей токен, тому видаліть його після встановлення.</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopSaveFailed" xml:space="preserve">
+    <value>Не вдалося зберегти розширення для Claude Desktop</value>
+  </data>
+  <data name="Settings.Mcp.ClientSelectLabel" xml:space="preserve">
+    <value>ШІ-клієнт</value>
+  </data>
+  <data name="Settings.Mcp.ConfigLabel" xml:space="preserve">
+    <value>Конфігурація клієнта</value>
+  </data>
+  <data name="Settings.Mcp.ConnectedSinceLabel" xml:space="preserve">
+    <value>Підключено з</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.One" xml:space="preserve">
+    <value>{count} підключення</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.Other" xml:space="preserve">
+    <value>Підключення: {count}</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionsEmpty" xml:space="preserve">
+    <value>Немає підключених ШІ-клієнтів.</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionsTitle" xml:space="preserve">
+    <value>Підключені клієнти</value>
+  </data>
+  <data name="Settings.Mcp.Description" xml:space="preserve">
+    <value>Дозвольте ШІ-асистентам, як-от Claude або VS Code, переглядати й будувати вашу конфігурацію та запускати дії через Model Context Protocol (MCP). Читати ваші секрети вони не можуть.</value>
+  </data>
+  <data name="Settings.Mcp.EmptyHeading" xml:space="preserve">
+    <value>Токенів доступу ще немає</value>
+  </data>
+  <data name="Settings.Mcp.EmptyMessage" xml:space="preserve">
+    <value>Створіть токен і додайте його до ШІ-клієнта, щоб підключити його до Macro Deck.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointHint" xml:space="preserve">
+    <value>На цьому комп'ютері використовуйте цю адресу. На іншому комп'ютері в мережі замініть 127.0.0.1 мережевою адресою цього комп'ютера. Для кожного підключення потрібен токен доступу.</value>
+  </data>
+  <data name="Settings.Mcp.EndpointLabel" xml:space="preserve">
+    <value>Адреса сервера</value>
+  </data>
+  <data name="Settings.Mcp.EndpointUnavailable" xml:space="preserve">
+    <value>Сервер MCP зараз недоступний.</value>
+  </data>
+  <data name="Settings.Mcp.Heading" xml:space="preserve">
+    <value>ШІ-клієнти</value>
+  </data>
+  <data name="Settings.Mcp.LoadFailed" xml:space="preserve">
+    <value>Не вдалося завантажити налаштування ШІ-клієнтів</value>
+  </data>
+  <data name="Settings.Mcp.NeverUsed" xml:space="preserve">
+    <value>Ніколи</value>
+  </data>
+  <data name="Settings.Mcp.OtherClients" xml:space="preserve">
+    <value>Інші клієнти</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAllow" xml:space="preserve">
+    <value>Дозволяти</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAsksFirst" xml:space="preserve">
+    <value>Спершу питає для: {actions}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyConfirm" xml:space="preserve">
+    <value>Спершу питати</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDefault" xml:space="preserve">
+    <value>Типово: {mode}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDescription" xml:space="preserve">
+    <value>Виберіть для кожного постачальника, чи можуть ШІ-клієнти запускати його дії одразу, мають спершу запитати вас або не можуть запускати їх зовсім. Це стосується й дій у потоках, які створюють ШІ-клієнти.</value>
+  </data>
+  <data name="Settings.Mcp.PolicyOff" xml:space="preserve">
+    <value>Вимкнено</value>
+  </data>
+  <data name="Settings.Mcp.PolicySaveFailed" xml:space="preserve">
+    <value>Не вдалося зберегти налаштування</value>
+  </data>
+  <data name="Settings.Mcp.PolicyTitle" xml:space="preserve">
+    <value>Дії, які можуть запускати ШІ-клієнти</value>
+  </data>
+  <data name="Settings.Mcp.RefreshAction" xml:space="preserve">
+    <value>Оновити</value>
+  </data>
+  <data name="Settings.Mcp.RemoveConfirmMessage" xml:space="preserve">
+    <value>{name} буде видалено назавжди. Його вже відкликано, тож ніщо не може його використати.</value>
+  </data>
+  <data name="Settings.Mcp.RevokeConfirmMessage" xml:space="preserve">
+    <value>{name} одразу перестане працювати, а всі ШІ-клієнти, які його використовують, буде відключено.</value>
+  </data>
+  <data name="Settings.Mcp.TokensTitle" xml:space="preserve">
+    <value>Токени доступу</value>
+  </data>
+  <data name="Settings.Mcp.UnknownClient" xml:space="preserve">
+    <value>Невідомий клієнт</value>
+  </data>
   <data name="Settings.Modal.AccountDefaultName" xml:space="preserve">
     <value>Обліковий запис Macro Deck</value>
   </data>
@@ -16962,6 +17322,12 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Settings.Network.DiscoveryLabel" xml:space="preserve">
     <value>Показувати в локальній мережі</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyDescription" xml:space="preserve">
+    <value>Вмикайте, лише якщо на цьому комп’ютері працює зворотний проксі, наприклад nginx, Caddy або Traefik, і передає підключення до Macro Deck. Тоді Macro Deck використовує для кожного клієнта адресу та стан HTTPS, які повідомляє проксі.</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyLabel" xml:space="preserve">
+    <value>За зворотним проксі на цьому комп’ютері</value>
   </data>
   <data name="Settings.Network.EnvironmentOverrideNote" xml:space="preserve">
     <value>Для цього запуску задано MACRO_DECK_PORT, і він визначає порт ({port}). Налаштоване значення не використовується, доки це перевизначення не буде видалено.</value>
@@ -17282,7 +17648,7 @@ Macro Deck встановлено з репозиторію APT, тож післ
     <value>Експортуйте ключ відновлення резервних копій, щоб захистити зв’язку ключів. Доки цього не зроблено, вона залишається доступною для читання на диску.</value>
   </data>
   <data name="Settings.Security.LockScreenDescription" xml:space="preserve">
-    <value>Блокує виконання дій, поки цей комп’ютер заблоковано, незалежно від вибору тут.</value>
+    <value>Блокує виконання дій, поки цей комп’ютер заблоковано, незалежно від вибору тут. У Linux Macro Deck не може визначити, що цей комп’ютер заблоковано, тому дії й далі виконуються, а підключені клієнти не блокуються.</value>
   </data>
   <data name="Settings.Security.LockScreenHeading" xml:space="preserve">
     <value>Екран блокування</value>
@@ -17816,6 +18182,9 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Shell.Notifications.Action.OpenLogs" xml:space="preserve">
     <value>Відкрити журнали</value>
   </data>
+  <data name="Shell.Notifications.Action.OpenSecretApprovals" xml:space="preserve">
+    <value>Переглянути</value>
+  </data>
   <data name="Shell.Notifications.Action.OpenTroubleshootingGuide" xml:space="preserve">
     <value>Усунення несправностей</value>
   </data>
@@ -17842,6 +18211,15 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Shell.Notifications.MarkAllRead" xml:space="preserve">
     <value>Позначити все як прочитане</value>
+  </data>
+  <data name="Shell.Notifications.MoreActions" xml:space="preserve">
+    <value>Інші дії зі сповіщеннями</value>
+  </data>
+  <data name="Shell.Notifications.Section.RequiresAttention" xml:space="preserve">
+    <value>Потребує уваги</value>
+  </data>
+  <data name="Shell.Notifications.Section.Earlier" xml:space="preserve">
+    <value>Раніше</value>
   </data>
   <data name="Shell.Notifications.Unread" xml:space="preserve">
     <value>Непрочитані</value>
@@ -17898,6 +18276,25 @@ Macro Deck встановлено з репозиторію APT, тож післ
   <data name="Shell.Splash.PreparingUpdate" xml:space="preserve">
     <value>Підготовка оновлення…</value>
   </data>
+  <data name="Shell.Splash.StepInstall" xml:space="preserve">
+    <value>Встановлення оновлення</value>
+  </data>
+  <data name="Shell.Splash.StepBackup" xml:space="preserve">
+    <value>Резервне копіювання даних</value>
+  </data>
+  <data name="Shell.Splash.CancelUpdate" xml:space="preserve">
+    <value>Скасувати оновлення</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackup" xml:space="preserve">
+    <value>Створення резервної копії…</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackupProgress" xml:space="preserve">
+    <value>Створення резервної копії… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
+  <data name="Shell.Splash.InstallingUpdate" xml:space="preserve">
+    <value>Встановлення оновлення…</value>
+  </data>
   <data name="Shell.Splash.Stopping" xml:space="preserve">
     <value>Зупинка Macro Deck…</value>
   </data>
@@ -17909,6 +18306,10 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Store.BackingUpEllipsis" xml:space="preserve">
     <value>Створення резервної копії…</value>
+  </data>
+  <data name="Store.BackingUpProgress" xml:space="preserve">
+    <value>Створення резервної копії… {percent}%</value>
+    <comment>[percent:int]</comment>
   </data>
   <data name="Store.Cancelled" xml:space="preserve">
     <value>Скасовано</value>
@@ -18012,19 +18413,19 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Store.EtaMinutesLeft.One" xml:space="preserve">
     <value>приблизно {count} хв залишилось</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaMinutesLeft.Other" xml:space="preserve">
     <value>приблизно {count} хв залишилось</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.One" xml:space="preserve">
     <value>приблизно {count} с залишилось</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.Other" xml:space="preserve">
     <value>приблизно {count} с залишилось</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.Failed" xml:space="preserve">
     <value>Не вдалося</value>
@@ -20737,9 +21138,6 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Widgets.Editor.IconProviderNoIconYet" xml:space="preserve">
     <value>Ця дія ще не надала значка.</value>
-  </data>
-  <data name="Widgets.Editor.IconProviderPreviewNote" xml:space="preserve">
-    <value>Цей попередній перегляд показує значок, налаштований вручну. Сама кнопка показуватиме те, що надає провайдер.</value>
   </data>
   <data name="Widgets.Editor.ImportIconFailed" xml:space="preserve">
     <value>Не вдалося імпортувати перетягнутий значок</value>
@@ -25075,5 +25473,86 @@ Macro Deck встановлено з репозиторію APT, тож післ
   </data>
   <data name="Widgets.Feeds.Sample.Description" xml:space="preserve">
     <value>Тут з'являється короткий опис статті.</value>
+  </data>
+  <data name="Mcp.Confirmation.AllowedHeading" xml:space="preserve">
+    <value>Дозволено</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclineAction" xml:space="preserve">
+    <value>Відхилити</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclinedHeading" xml:space="preserve">
+    <value>Відхилено</value>
+  </data>
+  <data name="Mcp.Confirmation.Hint" xml:space="preserve">
+    <value>Дозволяйте, лише якщо ви просили ШІ-клієнта саме про це.</value>
+  </data>
+  <data name="Mcp.Confirmation.InvalidMessage" xml:space="preserve">
+    <value>На запит уже відповіли, або термін його дії минув. Попросіть ШІ-клієнта спробувати ще раз.</value>
+  </data>
+  <data name="Mcp.Confirmation.Lead" xml:space="preserve">
+    <value>{client} просить Macro Deck виконати таке:</value>
+  </data>
+  <data name="Mcp.Confirmation.PageTitle" xml:space="preserve">
+    <value>Підтвердьте запит ШІ-клієнта</value>
+  </data>
+  <data name="Mcp.Elicitation.Confirm" xml:space="preserve">
+    <value>Перш ніж ШІ-клієнт продовжить, Macro Deck потрібне ваше підтвердження: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmOnPage" xml:space="preserve">
+    <value>Дозвольте або відхиліть на сторінці Macro Deck, що відкриється в браузері: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmTitle" xml:space="preserve">
+    <value>Дозволити</value>
+  </data>
+  <data name="Mcp.Elicitation.ProtectedVariable" xml:space="preserve">
+    <value>зміна змінної {name}, яку читає схвалений блок із секретом</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyAction" xml:space="preserve">
+    <value>{action} ({provider})</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyActionWithValues" xml:space="preserve">
+    <value>{action} ({provider}) зі значеннями {values}</value>
+  </data>
+  <data name="Mcp.Elicitation.SecretValue" xml:space="preserve">
+    <value>секрет</value>
+  </data>
+  <data name="Mcp.Elicitation.SetSecret" xml:space="preserve">
+    <value>Введіть секрет {label} на сторінці Macro Deck, яка відкриється в браузері. Значення залишається в Macro Deck.</value>
+  </data>
+  <data name="Mcp.Elicitation.SteeringValue" xml:space="preserve">
+    <value>передавання {name} до схваленого блоку із секретом</value>
+  </data>
+  <data name="Mcp.Extension.Description" xml:space="preserve">
+    <value>Дає Claude змогу працювати з налаштуванням Macro Deck на цьому комп'ютері: переглядати й створювати кнопки, папки та автоматизації, а також виконувати дії. Claude ніколи не бачить секретів.</value>
+  </data>
+  <data name="Mcp.SecretEntry.EmptyValue" xml:space="preserve">
+    <value>Введіть значення.</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidHeading" xml:space="preserve">
+    <value>Це посилання більше не дійсне</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidMessage" xml:space="preserve">
+    <value>Посилання вже використано або його строк минув. Попросіть ШІ-клієнт запросити секрет ще раз.</value>
+  </data>
+  <data name="Mcp.SecretEntry.Lead" xml:space="preserve">
+    <value>{client} просить Macro Deck зберегти секрет: {label}</value>
+  </data>
+  <data name="Mcp.SecretEntry.PageTitle" xml:space="preserve">
+    <value>Введення секрету</value>
+  </data>
+  <data name="Mcp.SecretEntry.Privacy" xml:space="preserve">
+    <value>Введений текст бачить лише Macro Deck. {client} отримує посилання для використання в діях, але ніколи не значення.</value>
+  </data>
+  <data name="Mcp.SecretEntry.SaveAction" xml:space="preserve">
+    <value>Зберегти секрет</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedHeading" xml:space="preserve">
+    <value>Секрет збережено</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedMessage" xml:space="preserve">
+    <value>Цю вкладку можна закрити й повернутися до {client}.</value>
+  </data>
+  <data name="Mcp.SecretEntry.ValueLabel" xml:space="preserve">
+    <value>Секрет</value>
   </data>
 </root>

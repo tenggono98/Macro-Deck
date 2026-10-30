@@ -15,6 +15,8 @@ internal sealed class TypeTextActionDefinition : IActionDefinition
 	}
 
 	public string Id => "type-text";
+
+	public ActionRiskCategory RiskCategory => ActionRiskCategory.Input;
 	public LocalizedText Name => AppStrings.Integrations.Keyboard.Actions.TypeTextName();
 	public LocalizedText Description => AppStrings.Integrations.Keyboard.Actions.TypeTextDescription();
 
@@ -22,7 +24,7 @@ internal sealed class TypeTextActionDefinition : IActionDefinition
 	[
 		ActionParameter.MultilineText("text",
 			AppStrings.Integrations.Keyboard.Actions.TypeTextLabel(),
-			AppStrings.Integrations.Keyboard.Actions.TypeTextParameterDescription(),
+			AppStrings.Integrations.Keyboard.Actions.TypeTextParameterDescription("{{ vars.name }}"),
 			AppStrings.Integrations.Keyboard.Actions.TypeTextPlaceholder(),
 			required: true),
 		.. KeyboardTargetParameters.All

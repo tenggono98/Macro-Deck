@@ -39,7 +39,7 @@
 // report failed - the host is down, or was never brought up - so the user has
 // at least one way to hear about an update.
 
-use std::sync::atomic::{AtomicI64, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
@@ -668,6 +668,16 @@ enum DownloadOutcome {
 
 static DOWNLOAD_CANCEL: Mutex<Option<tokio::sync::oneshot::Sender<()>>> = Mutex::new(None);
 
+pub async fn cancel_pre_update_backup(app: AppHandle) {
+    let operation_id = lock_state(&app)
+        .snapshot()
+        .backup
+        .map(|backup| backup.operation_id);
+    if let Some(operation_id) = operation_id {
+        host::cancel_backup_operation(&app, &operation_id).await;
+    }
+}
+
 #[tauri::command]
 pub async fn cancel_update_download(_app: AppHandle) {
     let sender = {
@@ -965,35 +975,53 @@ pub fn update_mode_changed(app: &AppHandle, mode: UpdateMode) {
     }
 }
 
-pub(crate) async fn install_on_quit(app: &AppHandle) -> bool {
+static INSTALL_ON_QUIT_RUNNING: AtomicBool = AtomicBool::new(false);
+
+pub(crate) fn install_on_quit_running() -> bool {
+    INSTALL_ON_QUIT_RUNNING.load(Ordering::SeqCst)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum QuitInstall {
+    NotPending,
+    Installed,
+    Failed,
+}
+
+pub(crate) async fn install_on_quit(app: &AppHandle) -> QuitInstall {
     if update_mode::current(app) != UpdateMode::Automatic {
-        return false;
+        return QuitInstall::NotPending;
     }
     let pending = {
         let mut guard = lock_state(app);
         let Some(version) = guard.version.clone() else {
-            return false;
+            return QuitInstall::NotPending;
         };
         if pending_download_version().as_deref() != Some(version.as_str())
             || !guard.claim_install_on_quit()
         {
-            return false;
+            return QuitInstall::NotPending;
         }
         take_matching_pending_download(&version)
     };
     let Some(pending) = pending else {
-        return false;
+        return QuitInstall::NotPending;
     };
     logging::info(&format!(
         "[updater] installing {} on quit",
         pending.update.version
     ));
+    INSTALL_ON_QUIT_RUNNING.store(true, Ordering::SeqCst);
+    update_window::show(app);
     emit_state_and_report(app).await;
-    match perform_install(app, pending.update, pending.bytes, AfterInstall::Exit).await {
-        Ok(()) => true,
+    let result = perform_install(app, pending.update, pending.bytes, AfterInstall::Exit).await;
+    INSTALL_ON_QUIT_RUNNING.store(false, Ordering::SeqCst);
+    match result {
+        Ok(()) => QuitInstall::Installed,
         Err(error) => {
             logging::error(&format!("[updater] install on quit failed: {error}"));
-            false
+            lock_state(app).record_quit_install_failed();
+            QuitInstall::Failed
         }
     }
 }
@@ -1293,10 +1321,20 @@ async fn perform_install(
         AfterInstall::Restart => host::PRE_UPDATE_BACKUP_TIMEOUT,
         AfterInstall::Exit => host::QUIT_PRE_UPDATE_BACKUP_TIMEOUT,
     };
-    if let Err(error) =
-        host::create_pre_update_backup(app, Some(&update.version), backup_timeout).await
+    if let Err(failure) =
+        host::create_pre_update_backup(app, Some(&update.version), backup_timeout, |progress| {
+            lock_state(app).record_backup_progress(progress)
+        })
+        .await
     {
-        let message = localization::t_args(keys::UPDATE_BACKUP_FAILED, &[("error", &error)]);
+        let message = match failure {
+            host::PreUpdateBackupFailure::Cancelled => {
+                localization::t(keys::UPDATE_BACKUP_CANCELLED)
+            }
+            host::PreUpdateBackupFailure::Failed(error) => {
+                localization::t_args(keys::UPDATE_BACKUP_FAILED, &[("error", &error)])
+            }
+        };
         {
             let mut guard = lock_state(app);
             guard.record_install_failed(message.clone());
@@ -1309,6 +1347,7 @@ async fn perform_install(
     // fail halfway through and leave a broken install behind (issue #131).
     // Refusing here keeps the current version intact and says why.
     if !host::shutdown_for_update(app).await {
+        resume_host_after_failure(app, after).await;
         let message = localization::t(keys::UPDATE_HOST_STOP_FAILED);
         {
             let mut guard = lock_state(app);
@@ -1317,10 +1356,6 @@ async fn perform_install(
         emit_state_and_report(app).await;
         return Err(message);
     }
-    // Only now: the host is down and the process is about to be replaced, so
-    // the exit handler must not try to stop the host a second time. Marking it
-    // earlier would leave the flag set on the error path above.
-    crate::mark_quitting(app);
     // Written before install: on Windows the plugin exits the process as soon
     // as the installer is launched, so there is no later point to do it.
     let known = lock_state(app).snapshot();
@@ -1338,7 +1373,9 @@ async fn perform_install(
             quit_after_update::remember(app, &update.version, now_secs());
         }
     }
-    let result = update.install(bytes);
+    // Quitting only while the install can replace the process, so the exit handler does not stop
+    // the host again; a failed install restores the flag and with it tray Quit and Cmd+Q.
+    let result = crate::quitting_while(|| update.install(bytes));
     if after == AfterInstall::Exit {
         quit_after_update::forget(app);
     }
@@ -1347,6 +1384,7 @@ async fn perform_install(
         Ok(()) => Ok(()),
         Err(error) => {
             post_update_changelog::forget(app);
+            resume_host_after_failure(app, after).await;
             let message = localization::t_args(
                 keys::UPDATE_INSTALL_FAILED,
                 &[("error", &error.to_string())],
@@ -1355,12 +1393,17 @@ async fn perform_install(
                 let mut guard = lock_state(app);
                 guard.record_install_failed(message.clone());
             }
-            // The host was already shut down for this install a moment ago
-            // (see above), so this report will typically fail - harmless,
-            // and logged as a warning rather than surfaced here.
             emit_state_and_report(app).await;
             Err(message)
         }
+    }
+}
+
+// Before the failure is recorded, so a Retry only starts once the host can take its backup again.
+// A quit-time install leaves it stopped: the app exits right after.
+async fn resume_host_after_failure(app: &AppHandle, after: AfterInstall) {
+    if after == AfterInstall::Restart {
+        host::resume_after_failed_update(app).await;
     }
 }
 
@@ -1393,6 +1436,8 @@ mod tests {
             progress: None,
             last_checked_at: None,
             install_on_quit: false,
+            backup: None,
+            quit_install_failed: false,
         }
     }
 

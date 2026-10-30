@@ -25,6 +25,7 @@ mod launch_handoff;
 mod localization;
 mod logging;
 mod loopback_secret;
+mod mcp_bridge;
 mod menu;
 mod notifications;
 mod opened_files;
@@ -49,12 +50,16 @@ mod windows_screen_color;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager, RunEvent};
+use updater::QuitInstall;
 
 pub const HOST_STOPPING_EVENT: &str = "host-stopping";
 
 static QUITTING: AtomicBool = AtomicBool::new(false);
+
+const QUIT_INSTALL_FAILURE_GRACE: Duration = Duration::from_secs(30);
 
 pub fn mark_quitting(_app: &AppHandle) {
     QUITTING.store(true, Ordering::SeqCst);
@@ -72,6 +77,19 @@ pub fn claim_quit() -> bool {
     !QUITTING.swap(true, Ordering::SeqCst)
 }
 
+pub fn quitting_while<T, E>(step: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
+    hold_quitting(&QUITTING, step)
+}
+
+fn hold_quitting<T, E>(flag: &AtomicBool, step: impl FnOnce() -> Result<T, E>) -> Result<T, E> {
+    let was_quitting = flag.swap(true, Ordering::SeqCst);
+    let result = step();
+    if result.is_err() && !was_quitting {
+        flag.store(false, Ordering::SeqCst);
+    }
+    result
+}
+
 pub fn request_quit(app: &AppHandle) {
     if QUITTING.swap(true, Ordering::SeqCst) {
         return;
@@ -83,11 +101,56 @@ pub fn request_quit(app: &AppHandle) {
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if !updater::install_on_quit(&app).await {
+        let steps = quit_steps(updater::install_on_quit(&app).await);
+        if steps.stop_host {
             host::stop(&app).await;
+        }
+        if steps.show_failure {
+            update_window::wait_until_closed(&app, QUIT_INSTALL_FAILURE_GRACE).await;
         }
         app.exit(0);
     });
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct QuitSteps {
+    stop_host: bool,
+    show_failure: bool,
+}
+
+fn quit_steps(outcome: QuitInstall) -> QuitSteps {
+    QuitSteps {
+        stop_host: outcome != QuitInstall::Installed,
+        show_failure: outcome == QuitInstall::Failed,
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum ExitRequest {
+    Allow,
+    Prevent,
+    PreventAndQuit,
+}
+
+// While a quit-time install runs, closing its window must not end the app: the exit handler would
+// stop the host in the middle of the pre-update backup.
+fn decide_exit(
+    quitting: bool,
+    requested_with_code: bool,
+    install_on_quit_running: bool,
+) -> ExitRequest {
+    if quitting {
+        return if !requested_with_code && install_on_quit_running {
+            ExitRequest::Prevent
+        } else {
+            ExitRequest::Allow
+        };
+    }
+    if requested_with_code {
+        ExitRequest::PreventAndQuit
+    } else {
+        ExitRequest::Prevent
+    }
 }
 
 fn init_logging(app: &AppHandle) {
@@ -157,6 +220,12 @@ fn opener_plugin<R: tauri::Runtime>() -> impl tauri::plugin::Plugin<R> {
 }
 
 fn main() {
+    // Before anything Tauri: an AI client's bridge process must never claim or forward to the
+    // single-instance lock, open a window or touch the running app.
+    if mcp_bridge::is_invocation(std::env::args_os()) {
+        std::process::exit(mcp_bridge::run());
+    }
+
     // A relaunch races the instance that started it: the single-instance lock is only released once
     // that process is gone, and claiming it too early makes this instance forward its argv to a
     // dying process and exit - the app would simply disappear.
@@ -290,18 +359,18 @@ fn main() {
         // callback before it starts pumping events, and an Opened that arrives
         // with no callback in place is dropped without a trace.
         .run(|app, event| match event {
-            RunEvent::ExitRequested { api, code, .. } => {
-                if QUITTING.load(Ordering::SeqCst) {
-                    return;
+            RunEvent::ExitRequested { api, code, .. } => match decide_exit(
+                QUITTING.load(Ordering::SeqCst),
+                code.is_some(),
+                updater::install_on_quit_running(),
+            ) {
+                ExitRequest::Allow => {}
+                ExitRequest::Prevent => api.prevent_exit(),
+                ExitRequest::PreventAndQuit => {
+                    api.prevent_exit();
+                    request_quit(app);
                 }
-                match code {
-                    None => api.prevent_exit(),
-                    Some(_) => {
-                        api.prevent_exit();
-                        request_quit(app);
-                    }
-                }
-            }
+            },
             // A tray quit goes request_quit -> app.exit(0) -> Exit with no
             // CloseRequested, so the window-state flush there is the only
             // chance to persist that session's geometry.
@@ -336,6 +405,101 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use tauri::plugin::Plugin;
+
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    use super::{decide_exit, hold_quitting, quit_steps, ExitRequest, QuitInstall, QuitSteps};
+
+    fn quit_can_be_claimed(flag: &AtomicBool) -> bool {
+        !flag.swap(true, Ordering::SeqCst)
+    }
+
+    #[test]
+    fn quit_works_again_after_an_install_that_failed_without_quitting() {
+        let flag = AtomicBool::new(false);
+
+        let result = hold_quitting(&flag, || Err::<(), _>("bundle not writable"));
+
+        assert!(result.is_err());
+        assert!(quit_can_be_claimed(&flag));
+    }
+
+    #[test]
+    fn a_failed_install_on_quit_keeps_the_app_quitting() {
+        let flag = AtomicBool::new(true);
+
+        let _ = hold_quitting(&flag, || Err::<(), _>("bundle not writable"));
+
+        assert!(!quit_can_be_claimed(&flag));
+    }
+
+    #[test]
+    fn the_app_is_quitting_while_the_install_runs_and_after_it_succeeds() {
+        let flag = AtomicBool::new(false);
+
+        let seen = hold_quitting(&flag, || Ok::<_, ()>(flag.load(Ordering::SeqCst)));
+
+        assert_eq!(seen, Ok(true));
+        assert!(!quit_can_be_claimed(&flag));
+    }
+
+    #[test]
+    fn a_failed_install_on_quit_stops_the_host_and_shows_the_failure_before_exiting() {
+        assert_eq!(
+            quit_steps(QuitInstall::Failed),
+            QuitSteps {
+                stop_host: true,
+                show_failure: true
+            }
+        );
+    }
+
+    #[test]
+    fn a_quit_without_a_pending_install_only_stops_the_host() {
+        assert_eq!(
+            quit_steps(QuitInstall::NotPending),
+            QuitSteps {
+                stop_host: true,
+                show_failure: false
+            }
+        );
+    }
+
+    #[test]
+    fn an_installed_update_already_stopped_the_host() {
+        assert_eq!(
+            quit_steps(QuitInstall::Installed),
+            QuitSteps {
+                stop_host: false,
+                show_failure: false
+            }
+        );
+    }
+
+    #[test]
+    fn closing_the_last_window_during_a_quit_time_install_does_not_exit() {
+        assert_eq!(decide_exit(true, false, true), ExitRequest::Prevent);
+    }
+
+    #[test]
+    fn the_quit_itself_still_exits_while_an_install_runs() {
+        assert_eq!(decide_exit(true, true, true), ExitRequest::Allow);
+    }
+
+    #[test]
+    fn closing_the_last_window_after_a_failed_install_on_quit_exits() {
+        assert_eq!(decide_exit(true, false, false), ExitRequest::Allow);
+    }
+
+    #[test]
+    fn closing_the_last_window_without_a_quit_keeps_running() {
+        assert_eq!(decide_exit(false, false, false), ExitRequest::Prevent);
+    }
+
+    #[test]
+    fn an_exit_request_with_a_code_starts_the_quit() {
+        assert_eq!(decide_exit(false, true, false), ExitRequest::PreventAndQuit);
+    }
 
     #[test]
     fn opener_plugin_injects_no_link_script_that_would_swallow_external_links() {

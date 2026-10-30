@@ -1,14 +1,17 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using MacroDeckHost.Application.Integrations;
 using MacroDeckHost.Application.MusicPlayer;
 using MacroDeckHost.Application.Notifications;
+using MacroDeckHost.Application.Mcp;
 using MacroDeckHost.Application.Rendering;
 using MacroDeckHost.Application.Ui.Modals;
 using MacroDeckHost.Localization;
 using MacroDeckHost.Application.Scripts;
 using MacroDeckHost.Application.Secrets;
+using MacroDeckHost.Application.Secrets.Approvals;
 using MacroDeckHost.Application.Services;
 using MacroDeckHost.Application.Variables;
 using MacroDeckHost.Application.Variables.Colors;
@@ -17,6 +20,7 @@ using MacroDeckHost.Domain.Enums;
 using MacroDeck.Localization;
 using MacroDeck.Sdk.Actions;
 using MacroDeckHost.Application.HostLocking;
+using MacroDeckHost.Application.Integrations.ConfigFlow;
 using Serilog;
 
 namespace MacroDeckHost.Application.Actions;
@@ -29,6 +33,7 @@ public interface IFlowExecutor
 public sealed class FlowExecutor : IFlowExecutor
 {
 	private const int MaxWhileIterations = 1000;
+	private const string SecretApprovalPendingDedupeKey = "secrets.approvalPending";
 
 	private readonly IIntegrationRegistry _integrationRegistry;
 	private readonly IVariableTemplateRenderer _variableRenderer;
@@ -44,6 +49,8 @@ public sealed class FlowExecutor : IFlowExecutor
 	private readonly ILogger _logger;
 	private readonly WidgetOptimisticStateStore? _optimisticStates;
 	private readonly WidgetStateEvalChannel? _stateEvalQueue;
+	private readonly ISecretApprovals? _approvals;
+	private readonly IMcpExecutionRegistry? _mcpExecutions;
 
 	public FlowExecutor(
 		IIntegrationRegistry integrationRegistry,
@@ -59,7 +66,9 @@ public sealed class FlowExecutor : IFlowExecutor
 		ILocalizationResolver localization,
 		ILogger logger,
 		WidgetOptimisticStateStore? optimisticStates = null,
-		WidgetStateEvalChannel? stateEvalQueue = null)
+		WidgetStateEvalChannel? stateEvalQueue = null,
+		ISecretApprovals? approvals = null,
+		IMcpExecutionRegistry? mcpExecutions = null)
 	{
 		_integrationRegistry = integrationRegistry;
 		_variableRenderer = variableRenderer;
@@ -75,6 +84,8 @@ public sealed class FlowExecutor : IFlowExecutor
 		_logger = logger.ForContext<FlowExecutor>();
 		_optimisticStates = optimisticStates;
 		_stateEvalQueue = stateEvalQueue;
+		_approvals = approvals;
+		_mcpExecutions = mcpExecutions;
 	}
 
 	public async Task<FlowExecutionResult> ExecuteAsync(
@@ -82,6 +93,7 @@ public sealed class FlowExecutor : IFlowExecutor
 		CancellationToken cancellationToken)
 	{
 		var stopwatch = Stopwatch.StartNew();
+		using var mcpScope = McpExecutionScope.Enter(request.McpTokenId);
 
 		// Host-autonomous triggers (schedules, startup/server-lifecycle events, in-process integration
 		// events, and the widget-state reconciler) mark their requests Origin = Host and deliberately
@@ -144,7 +156,9 @@ public sealed class FlowExecutor : IFlowExecutor
 			request.Origin,
 			request.FlowsSource,
 			request.Scope == VariableScope.Script ? request.ScopeRefId : null,
-			request.Scope == VariableScope.Automation ? request.ScopeRefId : null);
+			request.Scope == VariableScope.Automation ? request.ScopeRefId : null,
+			request.Owner,
+			request.TrustedDraft);
 
 		try
 		{
@@ -288,11 +302,14 @@ public sealed class FlowExecutor : IFlowExecutor
 		FlowRun run,
 		CancellationToken cancellationToken)
 	{
+		if (ActionFlowJson.IsActionBlock(block.Type, block.IntegrationId, block.BlockType))
+		{
+			await ExecuteIntegrationActionAsync(block, run, cancellationToken);
+			return;
+		}
+
 		switch (block.Type.ToLowerInvariant())
 		{
-			case "action":
-				await ExecuteIntegrationActionAsync(block, run, cancellationToken);
-				break;
 			case "delay":
 				await ExecuteDelayAsync(block, await CurrentVariablesAsync(run), cancellationToken);
 				break;
@@ -312,25 +329,17 @@ public sealed class FlowExecutor : IFlowExecutor
 				await ExecuteBlocksAsync(block.Children, run, cancellationToken);
 				break;
 			default:
-				if (!string.IsNullOrWhiteSpace(block.IntegrationId) || IsIntegrationActionBlockType(block.BlockType))
-				{
-					await ExecuteIntegrationActionAsync(block, run, cancellationToken);
-				}
-				else
-				{
-					_logger.Warning("Skipping unsupported action-button block {BlockType} ({Type})",
-						block.BlockType,
-						block.Type);
-					run.Record(block.Id,
-						block.Label,
-						block.IntegrationId,
-						block.ActionId,
-						ActionOutcomeStatus.Failed,
-						ActionExecutionErrorCodes.UnsupportedBlock,
-						AppStrings.Errors.Actions.StepTypeNotSupported(),
-						0);
-				}
-
+				_logger.Warning("Skipping unsupported action-button block {BlockType} ({Type})",
+					block.BlockType,
+					block.Type);
+				run.Record(block.Id,
+					block.Label,
+					block.IntegrationId,
+					block.ActionId,
+					ActionOutcomeStatus.Failed,
+					ActionExecutionErrorCodes.UnsupportedBlock,
+					AppStrings.Errors.Actions.StepTypeNotSupported(),
+					0);
 				break;
 		}
 	}
@@ -360,7 +369,8 @@ public sealed class FlowExecutor : IFlowExecutor
 		FlowRun run,
 		CancellationToken cancellationToken)
 	{
-		var (integrationId, actionId) = ResolveActionIdentity(block);
+		var (integrationId, actionId)
+			= ActionFlowJson.ResolveActionIdentity(block.IntegrationId, block.ActionId, block.BlockType);
 		if (string.IsNullOrWhiteSpace(integrationId) || string.IsNullOrWhiteSpace(actionId))
 		{
 			_logger.Warning("Skipping action block {BlockType}: missing integration/action id", block.BlockType);
@@ -424,9 +434,45 @@ public sealed class FlowExecutor : IFlowExecutor
 			return;
 		}
 
+		var declaredSecretIds = DeclaredSecretIds(block.Parameters, action.Parameters);
+		IReadOnlyDictionary<Guid, string>? decrypted = null;
+		if (declaredSecretIds.Count > 0)
+		{
+			var content = ContentOf(block, integrationId, actionId);
+			if (content.HasDuplicateParameterNames)
+			{
+				run.Record(block.Id,
+					block.Label,
+					integrationId,
+					actionId,
+					ActionOutcomeStatus.Failed,
+					ActionExecutionErrorCodes.InvalidParameter,
+					AppStrings.Errors.Actions.InvalidParameter(),
+					0);
+				return;
+			}
+
+			if (!SecretsApproved(block.Id, content, run))
+			{
+				run.Record(block.Id,
+					block.Label,
+					integrationId,
+					actionId,
+					ActionOutcomeStatus.Skipped,
+					ActionExecutionErrorCodes.SecretApprovalPending,
+					AppStrings.Errors.Actions.SecretApprovalPending(),
+					0);
+				await RaiseApprovalPendingAsync();
+				return;
+			}
+
+			decrypted = await DecryptAsync(declaredSecretIds);
+		}
+
 		var parameters = await BuildParameterDictionary(block.Parameters,
 			await CurrentVariablesAsync(run),
-			action.Parameters);
+			action.Parameters,
+			decrypted);
 		var stopwatch = Stopwatch.StartNew();
 		WidgetOptimisticStateIdentity? optimisticIdentity = null;
 		long optimisticGeneration = 0;
@@ -438,6 +484,7 @@ public sealed class FlowExecutor : IFlowExecutor
 			optimisticGeneration = _optimisticStates.Begin(optimisticIdentity);
 		}
 
+		using var mcpLease = McpExecutionScope.Current is not null ? _mcpExecutions?.Enter(integrationId) : null;
 		try
 		{
 			var executor = action.CreateExecutor();
@@ -686,27 +733,110 @@ public sealed class FlowExecutor : IFlowExecutor
 		return variables;
 	}
 
+	// The same parameter set BuildParameterDictionary executes, so what is compared is what runs.
+	private static FlowBlockContent ContentOf(ActionBlock block, string integrationId, string actionId)
+	{
+		return new FlowBlockContent(integrationId,
+			actionId,
+			block.Parameters.Where(parameter => !string.IsNullOrWhiteSpace(parameter.Name))
+				.Select(parameter => new FlowBlockParameter(parameter.Name, parameter.Type, parameter.Value))
+				.ToList());
+	}
+
+	private bool SecretsApproved(string blockId, FlowBlockContent content, FlowRun run)
+	{
+		if (_approvals is null)
+		{
+			return false;
+		}
+
+		if (run.TrustedDraft)
+		{
+			return _approvals.IsDraftApproved(run.Owner, blockId, content);
+		}
+
+		return run.Owner is { } owner && _approvals.IsApproved(owner, blockId, content);
+	}
+
+	private async Task RaiseApprovalPendingAsync()
+	{
+		var culture = (await _preferences.GetLocalization()).Culture;
+		_userNotificationStore.Raise(new UserNotificationDraft
+		{
+			Severity = UserNotificationSeverity.Warning,
+			Kind = UserNotificationKind.Security,
+			Title = _localization.Resolve(AppStrings.Notifications.SecretApprovalPendingTitle(), culture)
+				?? "A step is waiting for your approval",
+			Message = _localization.Resolve(AppStrings.Notifications.SecretApprovalPendingMessage(), culture),
+			Action = new UserNotificationAction(UserNotificationActionKind.OpenSecretApprovals, null),
+			DedupeKey = SecretApprovalPendingDedupeKey
+		});
+	}
+
+	private static HashSet<Guid> DeclaredSecretIds(
+		IEnumerable<ActionBlockParameter> parameters,
+		IReadOnlyList<ActionParameter> declared)
+	{
+		var byName = DeclaredSecretWalker.Index(declared);
+		var ids = new HashSet<Guid>();
+		foreach (var parameter in parameters)
+		{
+			if (byName.TryGetValue(parameter.Name, out var definition))
+			{
+				ids.UnionWith(DeclaredSecretWalker.SecretIds(definition, parameter.Value));
+			}
+		}
+
+		return ids;
+	}
+
+	private async Task<IReadOnlyDictionary<Guid, string>> DecryptAsync(IEnumerable<Guid> secretIds)
+	{
+		var decrypted = new Dictionary<Guid, string>();
+		foreach (var id in secretIds)
+		{
+			if (await _secretService.Resolve(id) is { } value)
+			{
+				decrypted[id] = value;
+			}
+		}
+
+		return decrypted;
+	}
+
 	private async Task<Dictionary<string, object>> BuildParameterDictionary(
 		IEnumerable<ActionBlockParameter> parameters,
 		VariableContext variables,
-		IReadOnlyList<ActionParameter>? declared = null)
+		IReadOnlyList<ActionParameter> declared,
+		IReadOnlyDictionary<Guid, string>? decrypted)
 	{
+		var byName = DeclaredSecretWalker.Index(declared);
+		var visitor = new DecryptingVisitor(decrypted);
 		var result = new Dictionary<string, object>();
-		foreach (var parameter in parameters)
+		foreach (var stored in parameters)
 		{
-			if (string.IsNullOrWhiteSpace(parameter.Name))
+			if (string.IsNullOrWhiteSpace(stored.Name))
 			{
 				continue;
 			}
 
-			var templatedItems = declared?.FirstOrDefault(candidate =>
-					string.Equals(candidate.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)) is
-				{ TemplatedItems: true };
-			var value = await ConvertParameterValue(parameter, variables, templatedItems) ?? string.Empty;
-			result[parameter.Name] = FlattenTemplatedColor(parameter, value, declared);
+			byName.TryGetValue(stored.Name, out var definition);
+			var parameter = definition is null
+				? WithValue(stored, stored.Type, DeclaredSecretWalker.StripReferences(stored.Value))
+				: WithValue(stored,
+					ActionParameterControlTypes.Of(definition.Type),
+					DeclaredSecretWalker.Rewrite(definition, stored.Value, visitor));
+			var value = await ConvertParameterValue(parameter, variables, definition is { TemplatedItems: true })
+				?? string.Empty;
+			result[parameter.Name] = FlattenTemplatedColor(parameter, value, definition);
 		}
 
 		return result;
+	}
+
+	private static ActionBlockParameter WithValue(ActionBlockParameter parameter, string type, JsonElement value)
+	{
+		return new ActionBlockParameter { Name = parameter.Name, Type = type, Label = parameter.Label, Value = value };
 	}
 
 	// A colour reference can carry alpha, which an action that never declared AllowAlpha has never been
@@ -714,15 +844,13 @@ public sealed class FlowExecutor : IFlowExecutor
 	private static object FlattenTemplatedColor(
 		ActionBlockParameter parameter,
 		object value,
-		IReadOnlyList<ActionParameter>? declared)
+		ActionParameter? definition)
 	{
 		if (!string.Equals(parameter.Type, "color", StringComparison.OrdinalIgnoreCase)
 			|| value is not string rendered
 			|| parameter.Value.ValueKind != JsonValueKind.String
 			|| !ColorReference.TryParse(parameter.Value.GetString(), out _)
-			|| declared?.FirstOrDefault(candidate =>
-					string.Equals(candidate.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)) is
-				{ AllowAlpha: true })
+			|| definition is { AllowAlpha: true })
 		{
 			return value;
 		}
@@ -734,7 +862,11 @@ public sealed class FlowExecutor : IFlowExecutor
 	{
 		var parameter
 			= block.Parameters.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
-		return parameter is null ? null : await ConvertParameterValue(parameter, variables);
+		return parameter is null
+			? null
+			: await ConvertParameterValue(
+				WithValue(parameter, parameter.Type, DeclaredSecretWalker.StripReferences(parameter.Value)),
+				variables);
 	}
 
 	private async Task<double?> GetNumberParameter(ActionBlock block, string name, VariableContext variables)
@@ -770,19 +902,14 @@ public sealed class FlowExecutor : IFlowExecutor
 				: parameter.Value.GetDouble(),
 			JsonValueKind.True => true,
 			JsonValueKind.False => false,
-			JsonValueKind.Object => await ConvertObjectParameter(parameter, variables),
+			JsonValueKind.Object => ConvertObjectParameter(parameter, variables),
 			JsonValueKind.Array => ConvertArrayParameter(parameter, variables, templatedItems),
 			_ => parameter.Value.ToString()
 		};
 	}
 
-	private async Task<object> ConvertObjectParameter(ActionBlockParameter parameter, VariableContext variables)
+	private object ConvertObjectParameter(ActionBlockParameter parameter, VariableContext variables)
 	{
-		if (TryGetSecretReference(parameter.Value, out var secretId))
-		{
-			return await _secretService.Resolve(secretId) ?? string.Empty;
-		}
-
 		var resolved = ActionConditionEvaluator.ResolveVariableReference(parameter.Value, variables);
 		if (resolved is null)
 		{
@@ -790,9 +917,7 @@ public sealed class FlowExecutor : IFlowExecutor
 			{
 				"keyvalue" => ConvertKeyValueParameter(parameter.Value, variables),
 				"hotkey" or "object" or "json" => ConvertJsonElement(parameter.Value) ?? parameter.Value.GetRawText(),
-				"keyboardsequence" =>
-					_conditionEvaluator.RenderTemplateString(parameter.Value.GetRawText(), variables)
-					?? parameter.Value.GetRawText(),
+				"keyboardsequence" or "keyboard-sequence" => RenderJsonStringLeaves(parameter.Value, variables),
 				_ => parameter.Value.GetRawText()
 			};
 		}
@@ -883,6 +1008,50 @@ public sealed class FlowExecutor : IFlowExecutor
 		return result;
 	}
 
+	private string RenderJsonStringLeaves(JsonElement element, VariableContext variables)
+	{
+		using var buffer = new MemoryStream();
+		using (var writer = new Utf8JsonWriter(buffer))
+		{
+			WriteRenderedJson(writer, element, variables);
+		}
+
+		return Encoding.UTF8.GetString(buffer.ToArray());
+	}
+
+	private void WriteRenderedJson(Utf8JsonWriter writer, JsonElement element, VariableContext variables)
+	{
+		switch (element.ValueKind)
+		{
+			case JsonValueKind.Object:
+				writer.WriteStartObject();
+				foreach (var property in element.EnumerateObject())
+				{
+					writer.WritePropertyName(property.Name);
+					WriteRenderedJson(writer, property.Value, variables);
+				}
+
+				writer.WriteEndObject();
+				break;
+			case JsonValueKind.Array:
+				writer.WriteStartArray();
+				foreach (var item in element.EnumerateArray())
+				{
+					WriteRenderedJson(writer, item, variables);
+				}
+
+				writer.WriteEndArray();
+				break;
+			case JsonValueKind.String:
+				var raw = element.GetString() ?? string.Empty;
+				writer.WriteStringValue(_conditionEvaluator.RenderTemplateString(raw, variables) ?? raw);
+				break;
+			default:
+				element.WriteTo(writer);
+				break;
+		}
+	}
+
 	private static object? ConvertJsonElement(JsonElement element)
 	{
 		return element.ValueKind switch
@@ -948,45 +1117,9 @@ public sealed class FlowExecutor : IFlowExecutor
 		return 0d;
 	}
 
-	private static bool TryGetSecretReference(JsonElement element, out Guid secretId)
-	{
-		secretId = Guid.Empty;
-
-		return element.ValueKind == JsonValueKind.Object
-			&& element.TryGetProperty("$secret", out var reference)
-			&& reference.ValueKind == JsonValueKind.String
-			&& Guid.TryParse(reference.GetString(), out secretId);
-	}
-
 	private static bool TryGetDouble(object? value, out double number)
 	{
 		return ActionConditionEvaluator.TryGetDouble(value, out number);
-	}
-
-	private static (string? IntegrationId, string? ActionId) ResolveActionIdentity(ActionBlock block)
-	{
-		if (!string.IsNullOrWhiteSpace(block.IntegrationId) && !string.IsNullOrWhiteSpace(block.ActionId))
-		{
-			return (block.IntegrationId, block.ActionId);
-		}
-
-		if (string.IsNullOrWhiteSpace(block.BlockType))
-		{
-			return (null, null);
-		}
-
-		var separatorIndex = block.BlockType.IndexOf('.', StringComparison.Ordinal);
-		if (separatorIndex <= 0 || separatorIndex >= block.BlockType.Length - 1)
-		{
-			return (null, null);
-		}
-
-		return (block.BlockType[..separatorIndex], block.BlockType[(separatorIndex + 1)..]);
-	}
-
-	private static bool IsIntegrationActionBlockType(string? blockType)
-	{
-		return !string.IsNullOrWhiteSpace(blockType) && blockType.Contains('.', StringComparison.Ordinal);
 	}
 
 	private sealed class FlowRun
@@ -1003,8 +1136,12 @@ public sealed class FlowExecutor : IFlowExecutor
 			ExecutionOrigin origin,
 			string? flowsSource,
 			string? scriptId,
-			string? automationId)
+			string? automationId,
+			FlowOwner? owner,
+			bool trustedDraft)
 		{
+			Owner = owner;
+			TrustedDraft = trustedDraft;
 			ScriptId = scriptId;
 			AutomationId = automationId;
 			ExecutionId = executionId;
@@ -1027,6 +1164,8 @@ public sealed class FlowExecutor : IFlowExecutor
 		public string? AutomationId { get; }
 		public ExecutionOrigin Origin { get; }
 		public string? ProviderBlockId => _providerBlockId.Value;
+		public FlowOwner? Owner { get; }
+		public bool TrustedDraft { get; }
 		public List<ActionExecutionOutcome> Outcomes { get; } = [];
 
 		public void Record(
@@ -1051,4 +1190,27 @@ public sealed class FlowExecutor : IFlowExecutor
 	}
 
 	private sealed class BreakLoopException : Exception;
+
+	private sealed class DecryptingVisitor(IReadOnlyDictionary<Guid, string>? decrypted) : ISecretPositionVisitor
+	{
+		public JsonElement Secret(JsonElement value)
+		{
+			if (SecretReferenceJson.TryGet(value, out var id))
+			{
+				return JsonSerializer.SerializeToElement(decrypted?.GetValueOrDefault(id) ?? string.Empty);
+			}
+
+			return DeclaredSecretWalker.StripReferences(value);
+		}
+
+		public JsonElement Undeclared(JsonElement value)
+		{
+			return DeclaredSecretWalker.StripReferences(value);
+		}
+
+		public JsonElement Other(JsonElement value)
+		{
+			return DeclaredSecretWalker.StripReferences(value);
+		}
+	}
 }

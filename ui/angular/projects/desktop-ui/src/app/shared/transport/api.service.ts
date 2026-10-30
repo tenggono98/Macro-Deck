@@ -7,10 +7,13 @@ import {
   AdvanceWebClientTargetProvisioningRequest,
   ApiError,
   ApprovePluginPairingRequestRequest,
+  ApproveSecretBlockRequest,
+  ApproveSecretBlockResponse,
   AuthStatusResponse,
   BackupRecoveryKeyResponse,
   BindCatalogVariableRequest,
   BindCatalogVariableResponse,
+  CancelBackupOperationResponse,
   CancelIconImportBatchResponse,
   CancelRestoreRequest,
   CancelRestoreResponse,
@@ -103,6 +106,7 @@ import {
   FolderViewCatalogChangedEvent,
   ScreenSaverCatalogChangedEvent,
   GetScreenSaversResponse,
+  GetSecretApprovalsResponse,
   GetAboutInfoResponse,
   GetThirdPartyNoticesResponse,
   GetActionButtonStateOptionsRequest,
@@ -404,6 +408,17 @@ import {
   WidgetTypeCatalogChangedEvent,
   WidgetTypeFavoritesChangedEvent,
 } from '@macro-deck/runtime';
+import {
+  ClaudeDesktopExtensionDownload,
+  CreateMcpTokenRequest,
+  CreateMcpTokenResponse,
+  GetMcpConnectionsResponse,
+  GetMcpPolicyResponse,
+  GetMcpTokensResponse,
+  McpEndpoint,
+  McpTokenActionResponse,
+  SetMcpPolicyRequest,
+} from './mcp-messages';
 import { v4 as uuidv4 } from 'uuid';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
@@ -887,6 +902,51 @@ export class ApiService {
 
   deletePluginToken(id: string): Promise<DeletePluginTokenResponse> {
     return this.http('DELETE', `/api/plugin-tokens/${encodeURIComponent(id)}`);
+  }
+
+  getMcpEndpoint(): Promise<McpEndpoint> {
+    return this.http('GET', '/api/mcp/endpoint');
+  }
+
+  getMcpTokens(): Promise<GetMcpTokensResponse> {
+    return this.http('GET', '/api/mcp/tokens');
+  }
+
+  createMcpToken(request: CreateMcpTokenRequest): Promise<CreateMcpTokenResponse> {
+    return this.http('POST', '/api/mcp/tokens', request);
+  }
+
+  revokeMcpToken(id: string): Promise<McpTokenActionResponse> {
+    return this.http('POST', `/api/mcp/tokens/${encodeURIComponent(id)}/revoke`);
+  }
+
+  deleteMcpToken(id: string): Promise<McpTokenActionResponse> {
+    return this.http('DELETE', `/api/mcp/tokens/${encodeURIComponent(id)}`);
+  }
+
+  async downloadClaudeDesktopExtension(id: string, token: string): Promise<ClaudeDesktopExtensionDownload> {
+    const response = await this.fetchWithAuth(`/api/mcp/tokens/${encodeURIComponent(id)}/claude-desktop-extension`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (response.ok) {
+      return { ok: true, blob: await response.blob() };
+    }
+    const failure = await response.json().catch(() => null) as McpTokenActionResponse | null;
+    return { ok: false, response: failure ?? { success: false } };
+  }
+
+  getMcpConnections(): Promise<GetMcpConnectionsResponse> {
+    return this.http('GET', '/api/mcp/connections');
+  }
+
+  getMcpPolicy(): Promise<GetMcpPolicyResponse> {
+    return this.http('GET', '/api/mcp/policy');
+  }
+
+  setMcpPolicy(request: SetMcpPolicyRequest): Promise<McpTokenActionResponse> {
+    return this.http('PUT', '/api/mcp/policy', request);
   }
 
   getPluginSessions(): Promise<GetPluginSessionsResponse> {
@@ -1948,6 +2008,14 @@ export class ApiService {
     return this.http('POST', `/api/secrets/${encodeURIComponent(id)}/clone`);
   }
 
+  getSecretApprovals(): Promise<GetSecretApprovalsResponse> {
+    return this.http('GET', '/api/secret-approvals');
+  }
+
+  approveSecretBlock(request: ApproveSecretBlockRequest): Promise<ApproveSecretBlockResponse> {
+    return this.http('POST', '/api/secret-approvals/approve', request);
+  }
+
   renderLabelPreview(request: LabelImagePreviewRequest): Promise<string | null> {
     return this.invokeResult<string | null>('RenderLabelPreview', request);
   }
@@ -2368,11 +2436,11 @@ export class ApiService {
     return this.http('GET', '/api/notifications');
   }
 
-  dismissNotification(id: string): Promise<void> {
+  dismissNotification(id: string): Promise<{ success: boolean }> {
     return this.http('DELETE', `/api/notifications/${encodeURIComponent(id)}`);
   }
 
-  dismissAllNotifications(): Promise<void> {
+  dismissAllNotifications(): Promise<{ success: boolean }> {
     return this.http('DELETE', '/api/notifications');
   }
 
@@ -2504,6 +2572,10 @@ export class ApiService {
 
   deleteBackup(backupId: string): Promise<DeleteBackupResponse> {
     return this.http('DELETE', `/api/backups/${encodeURIComponent(backupId)}`);
+  }
+
+  cancelBackupOperation(operationId: string): Promise<CancelBackupOperationResponse> {
+    return this.http('POST', `/api/backups/operations/${encodeURIComponent(operationId)}/cancel`);
   }
 
   getBackupSettings(): Promise<GetBackupSettingsResponse> {

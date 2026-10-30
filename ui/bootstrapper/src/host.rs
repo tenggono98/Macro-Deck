@@ -3,6 +3,7 @@
 // again on quit (graceful shutdown endpoint first, kill as fallback).
 
 use std::ffi::OsString;
+use std::future::Future;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -20,7 +21,7 @@ use crate::host_supervisor::{Decision, ExitAction, Supervisor, MAX_RESTART_ATTEM
 use crate::localization::{self, keys};
 use crate::logging::{self, LogTail};
 use crate::loopback_secret;
-use crate::update_state::{UpdateFailure, UpdateSnapshot};
+use crate::update_state::{BackupProgress, UpdateFailure, UpdateSnapshot};
 
 pub const BUILD_CHANNEL: &str = env!("MACRODECK_BUILD_CHANNEL");
 
@@ -70,6 +71,12 @@ const FORCED_STOP_TIMEOUT: Duration = Duration::from_secs(10);
 
 const REPLACED_HOST_STOP_TIMEOUT: Duration = QUIT_STOP_TIMEOUT;
 
+// Kestrel releases the port at the start of a graceful shutdown while the process lives on for up to
+// the host's shutdown timeout; relaunching sooner could start a second host on the same data root.
+const ADOPTED_HOST_EXIT_GRACE: Duration = QUIT_STOP_TIMEOUT;
+
+const ADOPTED_HOST_POLL_INTERVAL: Duration = Duration::from_millis(250);
+
 const LEGACY_HOST_STOP_TIMEOUT: Duration = Duration::from_secs(10);
 
 const ADOPTION_PROBE_TIMEOUT: Duration = Duration::from_secs(1);
@@ -86,6 +93,10 @@ const SESSION_END_STOP_TIMEOUT: Duration = Duration::from_secs(4);
 const READY_TIMEOUT: Duration = Duration::from_secs(60);
 
 const RETRY_READY_TIMEOUT: Duration = Duration::from_secs(30);
+
+// Must match StartupHeartbeat.Line in the host. The host prints it while it applies or rolls back a
+// staged restore before it listens; the ready timeout then counts from the last one.
+const HOST_HEARTBEAT_LINE: &str = "macrodeck-host-heartbeat";
 
 const UNRESPONSIVE_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 
@@ -105,11 +116,15 @@ pub const HOST_RESTART_EXIT_CODE: i32 = 86;
 
 pub const HOST_CRYPTOGRAPHY_UNAVAILABLE_EXIT_CODE: i32 = 87;
 
+pub const HOST_DATABASE_FROM_NEWER_VERSION_EXIT_CODE: i32 = 88;
+
 pub const RELAUNCH_MARKER_ENVIRONMENT_VARIABLE: &str = "MACRODECK_RELAUNCH";
 
 pub const RELAUNCH_SETTLE_DELAY: Duration = Duration::from_millis(1500);
 
 const STOP_POLL_INTERVAL: Duration = Duration::from_millis(250);
+
+const SHUTDOWN_RETRY_INTERVAL: Duration = Duration::from_secs(1);
 
 pub struct HostState {
     child: Mutex<Option<(u64, Child)>>,
@@ -118,7 +133,9 @@ pub struct HostState {
     pub exited: AtomicBool,
     pub ready: AtomicBool,
     pub shutdown_expected: AtomicBool,
+    adopted: AtomicBool,
     pub log_tail: Arc<LogTail>,
+    heartbeat: Arc<HostHeartbeat>,
     stopping: AtomicBool,
     ui_port: AtomicU16,
     supervisor: Mutex<Supervisor>,
@@ -133,7 +150,9 @@ impl HostState {
             exited: AtomicBool::new(false),
             ready: AtomicBool::new(false),
             shutdown_expected: AtomicBool::new(false),
+            adopted: AtomicBool::new(false),
             log_tail: Arc::new(LogTail::new(40)),
+            heartbeat: Arc::new(HostHeartbeat::default()),
             stopping: AtomicBool::new(false),
             ui_port: AtomicU16::new(0),
             supervisor: Mutex::new(Supervisor::new()),
@@ -218,7 +237,7 @@ pub fn choose_port(
     }
 }
 
-fn read_persisted_port(config_dir: &Path) -> Option<u16> {
+pub fn read_persisted_port(config_dir: &Path) -> Option<u16> {
     std::fs::read_to_string(config_dir.join(PERSISTED_PORT_FILE))
         .ok()
         .and_then(|raw| parse_port(&raw))
@@ -455,25 +474,69 @@ pub fn startup_failure_reason(log: &str) -> String {
 fn exit_failure_reason(code: Option<i32>, log: &str) -> String {
     if code == Some(HOST_CRYPTOGRAPHY_UNAVAILABLE_EXIT_CODE) {
         localization::t(keys::ERRORS_CRYPTOGRAPHY_UNAVAILABLE)
+    } else if code == Some(HOST_DATABASE_FROM_NEWER_VERSION_EXIT_CODE) {
+        localization::t(keys::ERRORS_DATABASE_FROM_NEWER_VERSION)
     } else {
         startup_failure_reason(log)
     }
 }
 
-fn pipe_to_tail<R: std::io::Read + Send + 'static>(reader: R, tail: Arc<LogTail>) {
-    std::thread::spawn(move || drain_into_tail(reader, &tail));
+#[derive(Default)]
+pub struct HostHeartbeat {
+    last: Mutex<Option<Instant>>,
+}
+
+impl HostHeartbeat {
+    fn beat(&self, at: Instant) {
+        if let Ok(mut last) = self.last.lock() {
+            *last = Some(at);
+        }
+    }
+
+    fn last(&self) -> Option<Instant> {
+        self.last.lock().ok().and_then(|last| *last)
+    }
+
+    fn clear(&self) {
+        if let Ok(mut last) = self.last.lock() {
+            *last = None;
+        }
+    }
+}
+
+pub fn ready_deadline(
+    started: Instant,
+    last_heartbeat: Option<Instant>,
+    timeout: Duration,
+) -> Instant {
+    last_heartbeat.map_or(started, |beat| beat.max(started)) + timeout
+}
+
+fn pipe_to_tail<R: std::io::Read + Send + 'static>(
+    reader: R,
+    tail: Arc<LogTail>,
+    heartbeat: Arc<HostHeartbeat>,
+) {
+    std::thread::spawn(move || drain_into_tail(reader, &tail, &heartbeat));
 }
 
 // Reads to the end whatever the output holds: stopping early closes the pipe, and every later write
 // by the host, or by a program it started, then fails or raises SIGPIPE.
-fn drain_into_tail<R: std::io::Read>(reader: R, tail: &LogTail) {
+fn drain_into_tail<R: std::io::Read>(reader: R, tail: &LogTail, heartbeat: &HostHeartbeat) {
     let mut reader = BufReader::new(reader);
     let mut line = Vec::new();
     loop {
         line.clear();
         match reader.read_until(b'\n', &mut line) {
             Ok(0) => return,
-            Ok(_) => tail.push_chunk(&crate::redact::redact(&String::from_utf8_lossy(&line))),
+            Ok(_) => {
+                let text = String::from_utf8_lossy(&line);
+                if text.trim() == HOST_HEARTBEAT_LINE {
+                    heartbeat.beat(Instant::now());
+                } else {
+                    tail.push_chunk(&crate::redact::redact(&text));
+                }
+            }
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
             Err(_) => return,
         }
@@ -517,7 +580,16 @@ pub async fn ensure_running(app: &AppHandle) -> bool {
                 logging::info(&format!(
                     "[host] adopting running host on loopback port {port}"
                 ));
+                let generation = state
+                    .supervisor
+                    .lock()
+                    .ok()
+                    .and_then(|mut supervisor| supervisor.adopt(Instant::now()));
                 state.ui_port.store(port, Ordering::SeqCst);
+                if let Some(generation) = generation {
+                    state.adopted.store(true, Ordering::SeqCst);
+                    spawn_adoption_monitor(app.clone(), generation, port);
+                }
                 state.ready.store(true, Ordering::SeqCst);
                 crate::install_integrity::host_ready(app);
                 adopt_host_culture(app, port).await;
@@ -667,15 +739,16 @@ fn launch(app: &AppHandle, state: &HostState) -> Result<Option<(u64, u16)>, Laun
     }
 
     state.log_tail.clear();
+    state.heartbeat.clear();
     let mut child = command
         .spawn()
         .map_err(|error| LaunchError::SpawnFailed(error.to_string()))?;
 
     if let Some(stdout) = child.stdout.take() {
-        pipe_to_tail(stdout, state.log_tail.clone());
+        pipe_to_tail(stdout, state.log_tail.clone(), state.heartbeat.clone());
     }
     if let Some(stderr) = child.stderr.take() {
-        pipe_to_tail(stderr, state.log_tail.clone());
+        pipe_to_tail(stderr, state.log_tail.clone(), state.heartbeat.clone());
     }
 
     #[cfg(windows)]
@@ -872,18 +945,7 @@ fn spawn_exit_monitor(app: AppHandle, generation: u64) {
             }
             ExitAction::Relaunch => {
                 logging::info("[host] restart requested by the host; relaunching Macro Deck");
-                let handle = app.clone();
-                let dispatched = app.run_on_main_thread(move || {
-                    crate::mark_quitting(&handle);
-                    if !relaunch(&handle) {
-                        crate::clear_quitting();
-                        report_failed_restart(&handle, code);
-                    }
-                });
-                if let Err(error) = dispatched {
-                    logging::error(&format!("[host] could not dispatch the relaunch: {error}"));
-                    report_failed_restart(&app, code);
-                }
+                relaunch_for_host(&app, code);
             }
             ExitAction::Recover => {
                 logging::error(&format!("[host] exited unexpectedly with code {code:?}"));
@@ -896,6 +958,68 @@ fn spawn_exit_monitor(app: AppHandle, generation: u64) {
                     }
                 });
             }
+        }
+    });
+}
+
+fn relaunch_for_host(app: &AppHandle, code: Option<i32>) {
+    let handle = app.clone();
+    let dispatched = app.run_on_main_thread(move || {
+        crate::mark_quitting(&handle);
+        if !relaunch(&handle) {
+            crate::clear_quitting();
+            report_failed_restart(&handle, code);
+        }
+    });
+    if let Err(error) = dispatched {
+        logging::error(&format!("[host] could not dispatch the relaunch: {error}"));
+        report_failed_restart(app, code);
+    }
+}
+
+fn adopted_generation_is_current(state: &HostState, generation: u64) -> bool {
+    state
+        .supervisor
+        .lock()
+        .map(|supervisor| supervisor.exit_of(generation).is_none() && !supervisor.is_stopping())
+        .unwrap_or(false)
+}
+
+// The bind probe fails while anything listens on the port, accepting or not, so a host that is
+// alive but hung is never mistaken for gone and doubled.
+fn spawn_adoption_monitor(app: AppHandle, generation: u64, port: u16) {
+    std::thread::spawn(move || {
+        let state = app.state::<Arc<HostState>>();
+        loop {
+            if !adopted_generation_is_current(&state, generation) {
+                return;
+            }
+            if is_port_free(port) {
+                break;
+            }
+            std::thread::sleep(ADOPTED_HOST_POLL_INTERVAL);
+        }
+
+        state.exited.store(true, Ordering::SeqCst);
+        state.ready.store(false, Ordering::SeqCst);
+        loopback_secret::forget_verified_port();
+        crate::install_integrity::host_gone();
+        if !adopted_generation_is_current(&state, generation) {
+            return;
+        }
+        logging::warn(&format!(
+            "[host] the adopted host released loopback port {port}; its exit code is unknown, relaunching Macro Deck once it had time to exit"
+        ));
+        std::thread::sleep(ADOPTED_HOST_EXIT_GRACE);
+
+        let shutdown_expected = state.shutdown_expected.load(Ordering::SeqCst);
+        let action = state
+            .supervisor
+            .lock()
+            .map(|mut supervisor| supervisor.on_adopted_exit(generation, shutdown_expected))
+            .unwrap_or(ExitAction::Ignore);
+        if action == ExitAction::Relaunch {
+            relaunch_for_host(&app, None);
         }
     });
 }
@@ -1086,7 +1210,10 @@ async fn give_up(app: &AppHandle, reason: Option<String>, exit: ExitStatus, log:
             if !detect_port_conflict(&log)
                 && !matches!(
                     exit,
-                    ExitStatus::Code(HOST_CRYPTOGRAPHY_UNAVAILABLE_EXIT_CODE)
+                    ExitStatus::Code(
+                        HOST_CRYPTOGRAPHY_UNAVAILABLE_EXIT_CODE
+                            | HOST_DATABASE_FROM_NEWER_VERSION_EXIT_CODE
+                    )
                 ) =>
         {
             None
@@ -1111,8 +1238,8 @@ async fn wait_for_ready(
     port: u16,
     timeout: Duration,
 ) -> AttemptOutcome {
-    let deadline = Instant::now() + timeout;
-    while Instant::now() < deadline {
+    let started = Instant::now();
+    while Instant::now() < ready_deadline(started, state.heartbeat.last(), timeout) {
         if let Some(code) = exit_of(state, generation) {
             return AttemptOutcome::Exited(code);
         }
@@ -1152,7 +1279,11 @@ async fn wait_for_exit(state: &HostState, generation: u64, timeout: Duration) ->
 pub async fn stop(app: &AppHandle) {
     let state = app.state::<Arc<HostState>>();
     begin_stop(&state);
-    if !state.spawned() || state.exited.load(Ordering::SeqCst) {
+    if !host_to_stop(
+        state.spawned(),
+        state.adopted.load(Ordering::SeqCst),
+        state.exited.load(Ordering::SeqCst),
+    ) {
         return;
     }
     if state.stopping.swap(true, Ordering::SeqCst) {
@@ -1165,7 +1296,13 @@ pub async fn stop(app: &AppHandle) {
 // Blocking here keeps the process, and with it the host's job, alive until Server stopped is out.
 pub fn stop_before_exit(app: &AppHandle) {
     let state = app.state::<Arc<HostState>>();
-    if crate::is_quitting() || !state.spawned() || state.exited.load(Ordering::SeqCst) {
+    if crate::is_quitting()
+        || !host_to_stop(
+            state.spawned(),
+            state.adopted.load(Ordering::SeqCst),
+            state.exited.load(Ordering::SeqCst),
+        )
+    {
         return;
     }
     logging::info("[host] exiting while the host is still running; stopping it first");
@@ -1174,8 +1311,8 @@ pub fn stop_before_exit(app: &AppHandle) {
     #[cfg(windows)]
     tauri::async_runtime::block_on(async {
         let stop = async {
-            let port = request_stop(app, SESSION_END_REASON).await;
-            wait_until_stopped(app, port, SESSION_END_STOP_TIMEOUT).await
+            let port = begin_shutdown(app);
+            stop_gracefully(app, port, SESSION_END_REASON, SESSION_END_STOP_TIMEOUT).await
         };
         if !matches!(
             tokio::time::timeout(SESSION_END_STOP_TIMEOUT, stop).await,
@@ -1188,8 +1325,61 @@ pub fn stop_before_exit(app: &AppHandle) {
     tauri::async_runtime::block_on(stop_host(app, "exit", QUIT_STOP_TIMEOUT));
 }
 
+pub fn host_to_stop(spawned: bool, adopted: bool, exited: bool) -> bool {
+    (spawned || adopted) && !exited
+}
+
 pub async fn shutdown_for_update(app: &AppHandle) -> bool {
     stop_host(app, "update", UPDATE_STOP_TIMEOUT).await
+}
+
+pub async fn resume_after_failed_update(app: &AppHandle) {
+    if !is_packaged() || crate::is_quitting() {
+        return;
+    }
+    let state = app.state::<Arc<HostState>>();
+    let resumed = state
+        .supervisor
+        .lock()
+        .map(|mut supervisor| supervisor.resume())
+        .unwrap_or(false);
+    if !resumed {
+        return;
+    }
+    state.shutdown_expected.store(false, Ordering::SeqCst);
+    state.ready.store(false, Ordering::SeqCst);
+    crate::install_integrity::host_gone();
+
+    let answering = is_reachable(managed_port(&state), Duration::from_millis(300)).await;
+    if previous_host_alive(
+        state.spawned(),
+        state.exited.load(Ordering::SeqCst),
+        answering,
+    ) {
+        logging::error(
+            "[host] the host could not be stopped for the update; not starting another one",
+        );
+        give_up(
+            app,
+            Some(localization::t(keys::UPDATE_HOST_STOP_FAILED)),
+            ExitStatus::NotRecorded,
+            state.log_tail.joined(),
+        )
+        .await;
+        return;
+    }
+    logging::info("[host] restarting the host after the failed update");
+    if supervise(app, None).await {
+        crate::window::reload_main_window(app);
+    }
+}
+
+fn previous_host_alive(spawned: bool, child_exited: bool, answering: bool) -> bool {
+    if spawned {
+        !child_exited
+    } else {
+        answering
+    }
 }
 
 fn begin_stop(state: &HostState) {
@@ -1198,27 +1388,94 @@ fn begin_stop(state: &HostState) {
     }
 }
 
-async fn request_stop(app: &AppHandle, reason: &str) -> Option<u16> {
+fn begin_shutdown(app: &AppHandle) -> Option<u16> {
     let state = app.state::<Arc<HostState>>();
     begin_stop(&state);
     state.shutdown_expected.store(true, Ordering::SeqCst);
 
     let port = managed_port(&state);
-    match port {
-        Some(port) => {
-            if let Err(error) = post_shutdown(port, reason).await {
-                logging::warn(&format!("[host] shutdown request failed: {error}"));
-            }
-        }
-        None => logging::warn("[host] no loopback port known; skipping the shutdown request"),
+    if port.is_none() {
+        logging::warn("[host] no loopback port known; skipping the shutdown request");
     }
     port
 }
 
-async fn stop_host(app: &AppHandle, reason: &str, graceful_timeout: Duration) -> bool {
-    let port = request_stop(app, reason).await;
+// The budget restarts once the host accepts, so a host that started late still gets its full shutdown.
+async fn stop_gracefully(
+    app: &AppHandle,
+    port: Option<u16>,
+    reason: &str,
+    graceful_timeout: Duration,
+) -> bool {
+    let mut attempts = 0u32;
+    let request = || {
+        attempts += 1;
+        let attempt = attempts;
+        async move {
+            let Some(port) = port else {
+                return false;
+            };
+            match post_shutdown(port, reason).await {
+                Ok(()) => {
+                    if attempt > 1 {
+                        logging::info(&format!(
+                            "[host] the host accepted the shutdown request on attempt {attempt}"
+                        ));
+                    }
+                    true
+                }
+                Err(error) => {
+                    if attempt == 1 {
+                        logging::warn(&format!(
+                            "[host] shutdown request failed: {error}; retrying until the host accepts it"
+                        ));
+                    }
+                    false
+                }
+            }
+        }
+    };
+    request_until_stopped(request, || host_stopped(app, port), graceful_timeout).await
+}
 
-    if wait_until_stopped(app, port, graceful_timeout).await {
+async fn request_until_stopped<Request, Requested, Stopped, Checked>(
+    mut request: Request,
+    mut stopped: Stopped,
+    timeout: Duration,
+) -> bool
+where
+    Request: FnMut() -> Requested,
+    Requested: Future<Output = bool>,
+    Stopped: FnMut() -> Checked,
+    Checked: Future<Output = bool>,
+{
+    let mut deadline = Instant::now() + timeout;
+    let mut accepted = false;
+    let mut next_request = Instant::now();
+    loop {
+        let now = Instant::now();
+        if !accepted && now >= next_request {
+            let remaining = deadline.saturating_duration_since(now);
+            accepted = matches!(tokio::time::timeout(remaining, request()).await, Ok(true));
+            if accepted {
+                deadline = Instant::now() + timeout;
+            }
+            next_request = Instant::now() + SHUTDOWN_RETRY_INTERVAL;
+        }
+        if stopped().await {
+            return true;
+        }
+        if Instant::now() >= deadline {
+            return false;
+        }
+        tokio::time::sleep(STOP_POLL_INTERVAL).await;
+    }
+}
+
+async fn stop_host(app: &AppHandle, reason: &str, graceful_timeout: Duration) -> bool {
+    let port = begin_shutdown(app);
+
+    if stop_gracefully(app, port, reason, graceful_timeout).await {
         return true;
     }
 
@@ -1339,7 +1596,8 @@ async fn post_shutdown(port: u16, reason: &str) -> Result<(), reqwest::Error> {
     loopback_secret::authorize(request, port)
         .await
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
     Ok(())
 }
 
@@ -1435,6 +1693,9 @@ pub const PRE_UPDATE_BACKUP_TIMEOUT: Duration = Duration::from_secs(600);
 
 pub const QUIT_PRE_UPDATE_BACKUP_TIMEOUT: Duration = Duration::from_secs(120);
 
+const PRE_UPDATE_BACKUP_POLL_INTERVAL: Duration = Duration::from_millis(500);
+const BACKUP_STATUS_TIMEOUT: Duration = Duration::from_secs(2);
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct PreUpdateBackupBody<'a> {
@@ -1446,6 +1707,8 @@ struct PreUpdateBackupBody<'a> {
 pub struct PreUpdateBackupResponse {
     pub success: bool,
     pub skipped: bool,
+    #[serde(default)]
+    pub cancelled: bool,
     pub error: Option<String>,
 }
 
@@ -1453,22 +1716,50 @@ pub struct PreUpdateBackupResponse {
 /// running host: an unreachable or unparseable answer must not read as permission to proceed.
 pub fn interpret_pre_update_backup_response(
     response: Option<PreUpdateBackupResponse>,
-) -> Result<(), String> {
+) -> Result<(), PreUpdateBackupFailure> {
     let Some(response) = response else {
-        return Err(localization::t(keys::UPDATE_BACKUP_UNCONFIRMED));
+        return Err(PreUpdateBackupFailure::Failed(localization::t(
+            keys::UPDATE_BACKUP_UNCONFIRMED,
+        )));
     };
 
-    if response.skipped {
+    if response.skipped || response.success {
         return Ok(());
     }
 
-    if response.success {
-        return Ok(());
+    if response.cancelled {
+        return Err(PreUpdateBackupFailure::Cancelled);
     }
 
-    Err(response
-        .error
-        .unwrap_or_else(|| localization::t(keys::UPDATE_BACKUP_GENERIC_FAILURE)))
+    Err(PreUpdateBackupFailure::Failed(
+        response
+            .error
+            .unwrap_or_else(|| localization::t(keys::UPDATE_BACKUP_GENERIC_FAILURE)),
+    ))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PreUpdateBackupFailure {
+    Failed(String),
+    Cancelled,
+}
+
+pub async fn cancel_backup_operation(app: &AppHandle, operation_id: &str) {
+    let state = app.state::<Arc<HostState>>();
+    let Some(port) = managed_port(&state) else {
+        return;
+    };
+    let Ok(client) = loopback_secret::http_client(BACKUP_STATUS_TIMEOUT) else {
+        return;
+    };
+    let request = client.post(format!(
+        "http://127.0.0.1:{port}/api/backups/operations/{operation_id}/cancel"
+    ));
+    if let Err(error) = loopback_secret::authorize(request, port).await.send().await {
+        logging::warn(&format!(
+            "[host] cancelling the pre-update backup failed: {error}"
+        ));
+    }
 }
 
 async fn post_pre_update_backup(
@@ -1490,17 +1781,83 @@ async fn post_pre_update_backup(
         .await
 }
 
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct BackupStatusResponse {
+    pub operation_id: Option<String>,
+    pub kind: String,
+    pub stage: String,
+    pub trigger: String,
+    pub percent_complete: Option<i64>,
+    pub eta_seconds: Option<i64>,
+}
+
+pub fn pre_update_backup_progress(
+    bound: &mut Option<String>,
+    status: &BackupStatusResponse,
+) -> Option<BackupProgress> {
+    let running = matches!(
+        status.stage.as_str(),
+        "Preparing" | "CreatingSnapshot" | "Encrypting" | "Saving" | "Validating"
+    );
+    if bound.is_none() && running && status.kind == "Create" && status.trigger == "BeforeHostUpdate"
+    {
+        bound.clone_from(&status.operation_id);
+    }
+    if !running || bound.is_none() || *bound != status.operation_id {
+        return None;
+    }
+    Some(BackupProgress {
+        operation_id: bound.clone()?,
+        percent: status
+            .percent_complete
+            .map(|percent| percent.clamp(0, 100) as u8),
+        eta_seconds: status
+            .eta_seconds
+            .and_then(|seconds| u64::try_from(seconds).ok()),
+    })
+}
+
+async fn get_backup_status(port: u16) -> Result<BackupStatusResponse, reqwest::Error> {
+    let client = loopback_secret::http_client(BACKUP_STATUS_TIMEOUT)?;
+    let request = client.get(format!("http://127.0.0.1:{port}/api/backups/status"));
+    loopback_secret::authorize(request, port)
+        .await
+        .send()
+        .await?
+        .json::<BackupStatusResponse>()
+        .await
+}
+
 pub async fn create_pre_update_backup(
     app: &AppHandle,
     version: Option<&str>,
     timeout: Duration,
-) -> Result<(), String> {
+    on_progress: impl Fn(Option<BackupProgress>),
+) -> Result<(), PreUpdateBackupFailure> {
     let state = app.state::<Arc<HostState>>();
     let Some(port) = managed_port(&state) else {
-        return Err(localization::t(keys::UPDATE_BACKUP_HOST_UNREACHABLE));
+        return Err(PreUpdateBackupFailure::Failed(localization::t(
+            keys::UPDATE_BACKUP_HOST_UNREACHABLE,
+        )));
     };
 
-    match post_pre_update_backup(port, version, timeout).await {
+    let post = post_pre_update_backup(port, version, timeout);
+    tokio::pin!(post);
+    let mut bound = None;
+    let outcome = loop {
+        tokio::select! {
+            result = &mut post => break result,
+            () = tokio::time::sleep(PRE_UPDATE_BACKUP_POLL_INTERVAL) => {
+                if let Ok(status) = get_backup_status(port).await {
+                    on_progress(pre_update_backup_progress(&mut bound, &status));
+                }
+            }
+        }
+    };
+    on_progress(None);
+
+    match outcome {
         Ok(response) => interpret_pre_update_backup_response(Some(response)),
         Err(error) => {
             logging::warn(&format!("[host] pre-update backup request failed: {error}"));
@@ -1572,6 +1929,93 @@ mod tests {
     use crate::update_state::UpdateState;
     use crate::updater::UpdateInstallStrategy;
 
+    fn backup_status(operation_id: &str, trigger: &str, stage: &str) -> BackupStatusResponse {
+        BackupStatusResponse {
+            operation_id: Some(operation_id.to_string()),
+            kind: "Create".to_string(),
+            stage: stage.to_string(),
+            trigger: trigger.to_string(),
+            percent_complete: Some(40),
+            eta_seconds: Some(90),
+        }
+    }
+
+    #[test]
+    fn a_cancelled_backup_stops_the_update_as_cancelled() {
+        let response = PreUpdateBackupResponse {
+            success: false,
+            skipped: false,
+            cancelled: true,
+            error: None,
+        };
+
+        assert_eq!(
+            interpret_pre_update_backup_response(Some(response)),
+            Err(PreUpdateBackupFailure::Cancelled)
+        );
+    }
+
+    #[test]
+    fn the_backup_made_for_the_update_is_followed() {
+        let mut bound = None;
+
+        let progress = pre_update_backup_progress(
+            &mut bound,
+            &backup_status("update", "BeforeHostUpdate", "Saving"),
+        );
+
+        assert_eq!(
+            progress,
+            Some(BackupProgress {
+                operation_id: "update".to_string(),
+                percent: Some(40),
+                eta_seconds: Some(90)
+            })
+        );
+    }
+
+    #[test]
+    fn a_scheduled_backup_holding_the_lease_is_not_shown_as_the_update_backup() {
+        let mut bound = None;
+
+        let progress = pre_update_backup_progress(
+            &mut bound,
+            &backup_status("scheduled", "Scheduled", "Saving"),
+        );
+
+        assert_eq!(progress, None);
+        assert_eq!(bound, None);
+    }
+
+    #[test]
+    fn a_later_backup_does_not_replace_the_one_already_followed() {
+        let mut bound = None;
+        pre_update_backup_progress(
+            &mut bound,
+            &backup_status("update", "BeforeHostUpdate", "Saving"),
+        );
+
+        let progress = pre_update_backup_progress(
+            &mut bound,
+            &backup_status("other", "BeforeHostUpdate", "Saving"),
+        );
+
+        assert_eq!(progress, None);
+    }
+
+    #[test]
+    fn a_finished_backup_from_an_earlier_attempt_is_not_followed() {
+        let mut bound = None;
+
+        let progress = pre_update_backup_progress(
+            &mut bound,
+            &backup_status("earlier", "BeforeHostUpdate", "Completed"),
+        );
+
+        assert_eq!(progress, None);
+        assert_eq!(bound, None);
+    }
+
     fn idle_update_state() -> UpdateState {
         UpdateState::idle(
             "3.0.0".to_string(),
@@ -1626,6 +2070,7 @@ mod tests {
         let response = PreUpdateBackupResponse {
             success: true,
             skipped: false,
+            cancelled: false,
             error: None,
         };
 
@@ -1638,6 +2083,7 @@ mod tests {
             success: false,
             skipped: true,
             error: None,
+            cancelled: false,
         };
 
         assert!(interpret_pre_update_backup_response(Some(response)).is_ok());
@@ -1648,12 +2094,16 @@ mod tests {
         let response = PreUpdateBackupResponse {
             success: false,
             skipped: false,
+            cancelled: false,
             error: Some("the disk is full".to_string()),
         };
 
         let error = interpret_pre_update_backup_response(Some(response)).unwrap_err();
 
-        assert!(error.contains("the disk is full"));
+        assert_eq!(
+            error,
+            PreUpdateBackupFailure::Failed("the disk is full".to_string())
+        );
     }
 
     // Fail closed: a host that is too old to know this endpoint, or that died mid-backup, answers with
@@ -1848,6 +2298,42 @@ mod tests {
     }
 
     #[test]
+    fn quitting_stops_an_adopted_host_as_well_as_a_spawned_one() {
+        assert!(host_to_stop(false, true, false));
+        assert!(host_to_stop(true, false, false));
+        assert!(!host_to_stop(false, false, false));
+        assert!(!host_to_stop(false, true, true));
+        assert!(!host_to_stop(true, false, true));
+    }
+
+    #[test]
+    fn a_listening_port_is_not_free_even_when_nothing_accepts_on_it() {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        assert!(!is_port_free(port));
+
+        drop(listener);
+        assert!(is_port_free(port));
+    }
+
+    #[test]
+    fn an_adopted_host_gets_its_worst_case_shutdown_before_macro_deck_relaunches() {
+        assert!(ADOPTED_HOST_EXIT_GRACE > HOST_SHUTDOWN_WORST_CASE);
+    }
+
+    #[test]
+    fn a_host_that_survived_the_update_stop_is_not_started_a_second_time() {
+        assert!(previous_host_alive(true, false, false));
+        assert!(previous_host_alive(false, false, true));
+    }
+
+    #[test]
+    fn a_host_that_is_gone_after_a_failed_update_stop_is_started_again() {
+        assert!(!previous_host_alive(true, true, false));
+        assert!(!previous_host_alive(false, false, false));
+    }
+
+    #[test]
     fn a_locked_binary_keeps_the_host_from_counting_as_stopped() {
         assert!(!is_stopped(true, true, false, false));
         assert!(!is_stopped(false, false, false, false));
@@ -1912,6 +2398,19 @@ mod tests {
         let message = exit_failure_reason(Some(HOST_CRYPTOGRAPHY_UNAVAILABLE_EXIT_CODE), "boom");
         assert!(message.contains("cryptography service"));
         assert!(message.contains("CNG Key Isolation"));
+    }
+
+    #[test]
+    fn a_database_from_a_newer_version_is_explained_instead_of_the_log() {
+        let message = exit_failure_reason(Some(HOST_DATABASE_FROM_NEWER_VERSION_EXIT_CODE), "boom");
+        assert!(message.contains("newer version of Macro Deck"));
+        assert!(!message.contains("did not start"));
+    }
+
+    #[test]
+    fn the_newer_database_exit_code_matches_the_host_constant() {
+        // Keep in sync with HostExitCodes.DatabaseFromNewerVersion in the .NET host.
+        assert_eq!(HOST_DATABASE_FROM_NEWER_VERSION_EXIT_CODE, 88);
     }
 
     #[test]
@@ -2012,12 +2511,92 @@ mod tests {
         drain_into_tail(
             std::io::Cursor::new(b"first\n\xff\xfe broken\nlast\n".to_vec()),
             &tail,
+            &HostHeartbeat::default(),
         );
 
         let lines = tail.joined();
         assert!(lines.contains("first"));
         assert!(lines.contains("broken"));
         assert!(lines.contains("last"));
+    }
+
+    #[test]
+    fn the_heartbeat_line_matches_the_host_constant() {
+        assert_eq!(HOST_HEARTBEAT_LINE, "macrodeck-host-heartbeat");
+    }
+
+    #[test]
+    fn a_heartbeat_line_counts_as_a_sign_of_life_and_stays_out_of_the_log() {
+        let tail = LogTail::new(10);
+        let heartbeat = HostHeartbeat::default();
+        let before = Instant::now();
+
+        drain_into_tail(
+            std::io::Cursor::new(b"applying restore\nmacrodeck-host-heartbeat\r\n".to_vec()),
+            &tail,
+            &heartbeat,
+        );
+
+        assert!(heartbeat.last().is_some_and(|beat| beat >= before));
+        assert_eq!(tail.joined(), "applying restore");
+    }
+
+    #[test]
+    fn a_host_still_applying_a_restore_is_not_timed_out() {
+        let started = Instant::now();
+        let heartbeat = HostHeartbeat::default();
+        heartbeat.beat(started + Duration::from_secs(55));
+
+        let deadline = ready_deadline(started, heartbeat.last(), READY_TIMEOUT);
+
+        assert!(deadline > started + READY_TIMEOUT + Duration::from_secs(50));
+    }
+
+    #[test]
+    fn the_ready_wait_keeps_waiting_while_heartbeats_arrive_and_times_out_after_they_stop() {
+        let state = HostState::new();
+        let port = allocate_free_port().expect("a free loopback port");
+        let timeout = Duration::from_secs(2);
+        let beats_for = Duration::from_secs(3);
+        let heartbeat = state.heartbeat.clone();
+        let started = Instant::now();
+        let beater = std::thread::spawn(move || {
+            while started.elapsed() < beats_for {
+                heartbeat.beat(Instant::now());
+                std::thread::sleep(Duration::from_millis(100));
+            }
+        });
+
+        let outcome = tauri::async_runtime::block_on(wait_for_ready(&state, 1, port, timeout));
+        let elapsed = started.elapsed();
+        beater.join().expect("the heartbeat thread");
+
+        assert!(matches!(outcome, AttemptOutcome::TimedOut));
+        assert!(
+            elapsed >= beats_for,
+            "timed out after {elapsed:?}, while heartbeats were still arriving"
+        );
+    }
+
+    #[test]
+    fn a_host_that_reports_nothing_still_times_out_after_the_ready_timeout() {
+        let started = Instant::now();
+
+        assert_eq!(
+            ready_deadline(started, None, RETRY_READY_TIMEOUT),
+            started + RETRY_READY_TIMEOUT
+        );
+    }
+
+    #[test]
+    fn a_heartbeat_from_before_the_attempt_does_not_shorten_its_timeout() {
+        let earlier = Instant::now();
+        let started = earlier + Duration::from_secs(10);
+
+        assert_eq!(
+            ready_deadline(started, Some(earlier), READY_TIMEOUT),
+            started + READY_TIMEOUT
+        );
     }
 
     #[test]
@@ -2087,5 +2666,100 @@ mod tests {
             "Macro Deck Host"
         );
         assert_eq!(host_binary_name_for("Production", false), "Macro Deck Host");
+    }
+
+    fn serve_host_that_listens_after(delay: Duration) -> (u16, Arc<AtomicBool>) {
+        let port = allocate_free_port().expect("a free loopback port");
+        let exited = Arc::new(AtomicBool::new(false));
+        let flag = exited.clone();
+        std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            std::thread::sleep(delay);
+            let listener = std::net::TcpListener::bind(("127.0.0.1", port)).unwrap();
+            for stream in listener.incoming() {
+                let Ok(mut stream) = stream else {
+                    continue;
+                };
+                let mut request = Vec::new();
+                let mut buffer = [0u8; 4096];
+                while !request.windows(4).any(|window| window == b"\r\n\r\n") {
+                    match stream.read(&mut buffer) {
+                        Ok(0) | Err(_) => break,
+                        Ok(read) => request.extend_from_slice(&buffer[..read]),
+                    }
+                }
+                let shutdown = request.starts_with(b"POST /api/host/shutdown");
+                let status = if shutdown { "200 OK" } else { "404 Not Found" };
+                let _ = stream.write_all(
+                    format!("HTTP/1.1 {status}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                        .as_bytes(),
+                );
+                if shutdown {
+                    flag.store(true, Ordering::SeqCst);
+                    return;
+                }
+            }
+        });
+        (port, exited)
+    }
+
+    #[test]
+    fn a_host_that_starts_listening_after_the_quit_still_gets_the_shutdown_request() {
+        let (port, exited) = serve_host_that_listens_after(Duration::from_millis(700));
+        let started = Instant::now();
+
+        let stopped = tauri::async_runtime::block_on(request_until_stopped(
+            || async move { post_shutdown(port, "quit").await.is_ok() },
+            || {
+                let exited = exited.clone();
+                async move { exited.load(Ordering::SeqCst) }
+            },
+            Duration::from_secs(5),
+        ));
+
+        assert!(
+            stopped,
+            "the host was never asked to shut down once it listened"
+        );
+        assert!(started.elapsed() < Duration::from_secs(5));
+    }
+
+    #[test]
+    fn a_refused_shutdown_request_does_not_count_as_delivered() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            use std::io::{Read, Write};
+            for mut stream in listener.incoming().flatten() {
+                let mut buffer = [0u8; 4096];
+                let _ = stream.read(&mut buffer);
+                let _ = stream.write_all(
+                    b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                );
+            }
+        });
+
+        let result = tauri::async_runtime::block_on(post_shutdown(port, "quit"));
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn a_host_that_accepts_the_request_late_still_gets_the_whole_graceful_budget() {
+        let timeout = Duration::from_secs(3);
+        let started = Instant::now();
+        let accepted_from = Duration::from_millis(1500);
+        let exits_at = Duration::from_millis(3500);
+
+        let stopped = tauri::async_runtime::block_on(request_until_stopped(
+            || async move { started.elapsed() >= accepted_from },
+            || async move { started.elapsed() >= exits_at },
+            timeout,
+        ));
+
+        assert!(
+            stopped,
+            "the host was given up on before its shutdown could finish"
+        );
     }
 }

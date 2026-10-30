@@ -12,6 +12,15 @@ Choose **Create backup**. Under **Schedule** you can also let Macro Deck make ba
 before Macro Deck or plugin updates. **Keep latest** sets how many backups stay before older ones are
 deleted.
 
+While a backup is made, Macro Deck shows which step it is on and how far it is, and once it can estimate it,
+about how long is left. Until then the bar only shows that it is working. Backups that Macro Deck makes on its
+own show the same progress: before a Macro Deck update, before a plugin update and before a restore.
+
+A running backup also appears in the notification center with its progress and a **Cancel** button, so you
+can follow it after closing its dialog; a finished backup stays there as **Backup completed**, a failed one as
+an error. **Cancel backup** stops a backup while it runs and keeps nothing of it. When the backup was made before an
+update, a plugin update or a restore, cancelling it cancels that too, so nothing changes without its backup.
+
 Use **Download** in a backup's menu to save it as a `.macroDeckBackup` file, for example to keep a copy
 somewhere else or to move to another computer. In the Macro Deck app you choose where to save it; in a
 browser it goes to your downloads.
@@ -30,11 +39,36 @@ When you regenerate the recovery key, backups made before that still need the ol
 2. Choose what to restore. Anything you select replaces the same data on this installation.
 3. Confirm with **Restore**.
 
+Some parts depend on others, so selecting one also selects what it needs. You can clear those again, and
+the dialog then explains what will not work.
+
+Integrations, app settings and accounts depend on each other: the integrations hold the keys that protect
+the HTTPS certificate in the app settings and the sign-in and pairing keys of the accounts. Profiles,
+scripts, automations and plugins need integrations, and accounts need profiles. So selecting any of these
+groups also selects integrations, app settings and accounts, and with them profiles, plugins, variables and
+icons. Clear what you do not want to replace. If you leave out one of integrations, app settings and
+accounts and the backup was made on another computer or some time ago, everyone may be signed out, devices
+may have to be paired again, or HTTPS may have to be set up again.
+
+A backup from another computer that was made with a version before Macro Deck 3.0.0-beta.5 has no pairing
+key, so devices have to be paired again after restoring it.
+
 Imported fonts belong to **Icons, icon packs and fonts**. Restoring that group from a backup made before
 Macro Deck could import fonts removes the fonts you imported since.
 
-The restore is applied the next time Macro Deck starts. The installed app restarts on its own. Macro Deck
-first makes a backup marked **Safety backup**, so you can go back.
+The restore is applied the next time Macro Deck starts. The installed app restarts on its own. Before that,
+Macro Deck checks the backup you chose (step 1 of 2) and then makes a backup marked **Safety backup** (step 2
+of 2), so you can go back.
+
+A backup from a newer version of Macro Deck that stores its data in a way this version does not know cannot
+be restored. Macro Deck says so while it checks the backup, before anything changes; update Macro Deck
+first, then restore it. A backup whose data this version cannot convert, for example because the backup is
+damaged, is refused the same way and says that it cannot be restored with this version.
+
+If the restore cannot finish, for example because Macro Deck was closed while it was being applied, Macro
+Deck puts your data back the way it was before the restore and shows a **Restore failed** notification.
+Nothing from the backup is kept, so start the restore again. If the notification asks you to restart, some
+data has not been put back yet: restart Macro Deck and it finishes the job.
 
 ## Restore a backup from another computer
 

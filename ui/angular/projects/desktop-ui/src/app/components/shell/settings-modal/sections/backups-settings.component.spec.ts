@@ -144,7 +144,85 @@ describe('BackupsSettingsComponent', () => {
 
       const modal = fixture.nativeElement.querySelector('shared-modal');
       expect(modal).toBeTruthy();
-      expect(modal.textContent).toContain('Encrypting');
+      expect(modal.textContent).toContain('Copying and encrypting your data');
+    });
+
+    async function closeModalWithX(): Promise<void> {
+      (fixture.nativeElement.querySelector('shared-modal .modal-close-btn') as HTMLButtonElement).click();
+      jasmine.clock().tick(150);
+      fixture.detectChanges();
+      await fixture.whenStable();
+    }
+
+    it('stays closed when its X is clicked while the backup keeps running', async () => {
+      fixture = await create();
+      await pushStatus('Saving');
+
+      await closeModalWithX();
+      await pushStatus('Validating');
+
+      expect(fixture.nativeElement.querySelector('shared-modal')).toBeNull();
+    });
+
+    it('shows the running backup in the section while its dialog is closed, with a way back', async () => {
+      fixture = await create();
+      await pushStatus('Saving');
+      await closeModalWithX();
+
+      const running = fixture.nativeElement.querySelector('.bks-running') as HTMLElement;
+      expect(running?.querySelector('shared-backup-progress-card')).toBeTruthy();
+
+      const details = Array.from(running.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+        .find(button => button.textContent?.includes('Show details'));
+      details!.click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('shared-modal shared-backup-progress-card')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.bks-running')).toBeNull();
+    });
+
+    it('comes back when the details are asked for again', async () => {
+      fixture = await create();
+      await pushStatus('Saving');
+      await closeModalWithX();
+
+      TestBed.inject(BackupService).showProgressDialog();
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(fixture.nativeElement.querySelector('shared-modal shared-backup-progress-card')).toBeTruthy();
+    });
+
+    it('still shows a failure of a backup whose dialog was closed', async () => {
+      fixture = await create();
+      await pushStatus('Saving');
+      await closeModalWithX();
+
+      await pushStatus('Failed');
+
+      expect(fixture.nativeElement.querySelector('shared-modal')?.textContent).toContain('The disk is full');
+    });
+
+    it('ends a cancelled backup quietly with a toast, not as a failure', async () => {
+      fixture = await create();
+      await pushStatus('Saving');
+      const service = TestBed.inject(BackupService);
+
+      service.operation.set({
+        operationId: 'op1',
+        kind: 'Create',
+        stage: 'Failed',
+        trigger: 'Manual',
+        error: 'Cancelled',
+        updatedAt: '2026-08-17T03:00:01Z',
+      });
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('shared-modal')).toBeNull();
+      expect(toastSpy.show).toHaveBeenCalledWith(jasmine.any(String), { variant: 'info' });
     });
 
     // The complaint that started this: a finished operation used to leave a large empty box behind.
@@ -334,7 +412,7 @@ describe('BackupsSettingsComponent', () => {
 
       const pickModal = fixture.debugElement.query(By.directive(BackupRestoreModalComponent));
       expect(pickModal).toBeTruthy();
-      (pickModal.componentInstance as BackupRestoreModalComponent).confirmed.emit(['Plugins']);
+      (pickModal.componentInstance as BackupRestoreModalComponent).confirmed.emit(['Plugins', 'Integrations']);
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('shared-confirmation-modal').textContent)
@@ -346,7 +424,7 @@ describe('BackupsSettingsComponent', () => {
       await fixture.whenStable();
 
       expect(api.prepareRestore).toHaveBeenCalledOnceWith({
-        backupId: 'f', components: ['Plugins'], recoveryKey: 'the-right-key',
+        backupId: 'f', components: ['Plugins', 'Integrations'], recoveryKey: 'the-right-key',
       });
     });
 
@@ -360,6 +438,22 @@ describe('BackupsSettingsComponent', () => {
 
       const pickModal = fixture.debugElement.query(By.directive(BackupRestoreModalComponent));
       (pickModal.componentInstance as BackupRestoreModalComponent).confirmed.emit(['Profiles']);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('shared-confirmation-modal').textContent)
+        .not.toContain('Macro Deck uses the recovery key you just entered');
+    });
+
+    it('does not claim the recovery key changes when integrations were unchecked', async () => {
+      fixture = await create();
+      answerInspect();
+
+      await fixture.componentInstance.onRestoreRequested(foreign);
+      await settle();
+      await submitRecoveryKey('the-right-key');
+
+      const pickModal = fixture.debugElement.query(By.directive(BackupRestoreModalComponent));
+      (pickModal.componentInstance as BackupRestoreModalComponent).confirmed.emit(['Plugins']);
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('shared-confirmation-modal').textContent)

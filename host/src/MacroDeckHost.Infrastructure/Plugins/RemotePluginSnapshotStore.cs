@@ -43,6 +43,7 @@ public sealed class RemotePluginSnapshotStore : IRemotePluginSnapshotStore, IDis
 		new(StringComparer.Ordinal);
 
 	private bool _disposed;
+	private bool _unreadable;
 
 	public RemotePluginSnapshotStore(IMacroDeckPaths paths, ILogger logger)
 	{
@@ -77,6 +78,16 @@ public sealed class RemotePluginSnapshotStore : IRemotePluginSnapshotStore, IDis
 		return Task.CompletedTask;
 	}
 
+	public Task RemoveAsync(string pluginId, CancellationToken cancellationToken = default)
+	{
+		if (_byPluginId.TryRemove(pluginId, out _))
+		{
+			WriteToDisk();
+		}
+
+		return Task.CompletedTask;
+	}
+
 	// A plugin's registration can still finish after the host stopped; once disposed, the store must not
 	// recreate files in a data directory that may already be being removed.
 	public void Dispose()
@@ -91,7 +102,13 @@ public sealed class RemotePluginSnapshotStore : IRemotePluginSnapshotStore, IDis
 	{
 		lock (_fileLock)
 		{
-			return _files.Read<Dictionary<string, PersistedSnapshot>>(_filePath) ?? [];
+			if (_files.Read<Dictionary<string, PersistedSnapshot>>(_filePath) is { } loaded)
+			{
+				return loaded;
+			}
+
+			_unreadable = File.Exists(_filePath);
+			return [];
 		}
 	}
 
@@ -101,6 +118,14 @@ public sealed class RemotePluginSnapshotStore : IRemotePluginSnapshotStore, IDis
 		{
 			if (_disposed)
 			{
+				return;
+			}
+
+			if (_unreadable)
+			{
+				_logger.Warning("The plugin capability snapshot file {Path} could not be read; snapshots are not saved "
+					+ "until it is repaired",
+					_filePath);
 				return;
 			}
 

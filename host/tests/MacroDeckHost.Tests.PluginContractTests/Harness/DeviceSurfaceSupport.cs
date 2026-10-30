@@ -242,6 +242,14 @@ internal sealed class ContractWidgetIcons : IWidgetIconService
 		return Resolve(widgetId, cancellationToken);
 	}
 
+	public Task<WidgetIconResolution> ResolveDraft(
+		string? data,
+		string resourceKey,
+		CancellationToken cancellationToken = default)
+	{
+		return Task.FromResult(WidgetIconResolution.Inactive);
+	}
+
 	public TimeSpan? GetProviderPollInterval(Guid widgetId)
 	{
 		return null;
@@ -441,7 +449,8 @@ internal sealed class ContractAppPreferences : IAppPreferenceService
 		bool? tlsEnabled = null,
 		string? tlsMode = null,
 		int? tlsHttpsPort = null,
-		bool? discoveryEnabled = null)
+		bool? discoveryEnabled = null,
+		bool? reverseProxyTrusted = null)
 	{
 		throw new NotSupportedException();
 	}
@@ -613,7 +622,8 @@ internal static class ContractDeck
 			new ContractAppPreferences(),
 			new ContractIconPacks(),
 			new ContractNoDefaultShortPress(),
-			colors ?? new ColorReferenceResolver(new VariableRegistry()));
+			colors ?? new ColorReferenceResolver(new VariableRegistry()),
+			Serilog.Core.Logger.None);
 	}
 
 	/// <summary>The deck itself: a Studio profile whose default grid is 3x5, a Home folder that inherits

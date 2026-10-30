@@ -1,13 +1,13 @@
-import { Component, computed, effect, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, OnInit, OnDestroy, ChangeDetectionStrategy, signal, untracked } from '@angular/core';
 
 import { RouterOutlet } from '@angular/router';
-import { AppStrings } from '@macro-deck/runtime';
+import { AppStrings, GetBackupStatusResponse } from '@macro-deck/runtime';
 import { ApiService, AuthService, KeyRingService, LoginFormComponent, LocalizationService, NotificationDialogHostComponent, ThemeService, ToastHostComponent, VariableService, UiModalHostComponent } from '@shared';
 import { PluginPairingDialogComponent } from './components/overlay/plugin-pairing-dialog/plugin-pairing-dialog.component';
 import { PluginAdbConsentDialogComponent } from './components/overlay/plugin-adb-consent-dialog/plugin-adb-consent-dialog.component';
 import { PluginCompanionConsentDialogComponent } from './components/overlay/plugin-companion-consent-dialog/plugin-companion-consent-dialog.component';
 import { HostSessionService } from './services/host-session.service';
-import { SplashComponent } from './components/splash';
+import { SplashComponent, SplashStep } from './components/splash';
 import { FirstRunWizardComponent } from './components/first-run-wizard/first-run-wizard.component';
 import { KeyRingUnlockGateComponent } from './components/key-ring-unlock-gate/key-ring-unlock-gate.component';
 import { MigrationOfferModalComponent } from './components/migration/migration-offer-modal/migration-offer-modal.component';
@@ -16,6 +16,8 @@ import { MigrationWizardComponent } from './components/migration/migration-wizar
 import { ProfileService } from '@shared';
 import { DeepLinkService, FileOpenService, MenuActionService, NavigationService, FolderService, UpdateService } from './services';
 import { MigrationWizardService } from './services/migration-wizard.service';
+import { BackupService } from './services/backup.service';
+import { backupEta, backupPercent, isActiveBackupStage, isTerminalBackupStage } from './util/backup-progress-display';
 
 const BOOTSTRAP_RETRY_MS = 1500;
 
@@ -46,10 +48,15 @@ const BOOTSTRAP_RETRY_MS = 1500;
           </div>
         }
         @case ('authenticated') {
-          @if (isConnected() && !installingUpdate()) {
-            <router-outlet></router-outlet>
+          @if (installingUpdate() || !hasConnected()) {
+            <app-splash [status]="splashStatus()" [progress]="splashProgress()" [details]="splashDetails()" [steps]="splashSteps()" [cancelLabel]="splashCancelLabel()" (cancel)="cancelUpdateBackup()"></app-splash>
           } @else {
-            <app-splash [status]="splashStatus()"></app-splash>
+            <div class="shell-outlet" [inert]="!isConnected()">
+              <router-outlet></router-outlet>
+            </div>
+            @if (!isConnected()) {
+              <app-splash [overlay]="true" [status]="splashStatus()"></app-splash>
+            }
           }
         }
         @default {
@@ -75,6 +82,10 @@ const BOOTSTRAP_RETRY_MS = 1500;
     `,
   changeDetection: ChangeDetectionStrategy.Eager,
   styles: [`
+    .shell-outlet {
+      display: contents;
+    }
+
     .auth-gate {
       display: flex;
       align-items: center;
@@ -101,19 +112,81 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly variableService = inject(VariableService);
   protected readonly migrationWizard = inject(MigrationWizardService);
   private readonly updateService = inject(UpdateService);
+  private readonly backupService = inject(BackupService);
+  private readonly updateBackupId = signal<string | null>(null);
+  private staleBackupId: string | null | undefined;
   private bootstrapRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private keyRingProbeTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly isConnected = computed(() => this.api.connectionStateSignal() === 'connected');
 
+  protected readonly hasConnected = signal(false);
+
+  private readonly blockKeysWhileReconnecting = (event: KeyboardEvent): void => {
+    if (this.hasConnected() && !this.isConnected()) {
+      event.stopImmediatePropagation();
+    }
+  };
+
   protected readonly installingUpdate = computed(() => this.updateService.phase() === 'installing');
+
+  private readonly updateBackup = computed(() => {
+    const id = this.updateBackupId();
+    const operation = this.backupService.operation();
+    return id !== null && operation?.operationId === id ? operation : null;
+  });
+
+  private readonly updateBackupRunning = computed(() => {
+    const operation = this.updateBackup();
+    return !!operation && isActiveBackupStage(operation.stage);
+  });
+
+  private readonly updateBackupDone = computed(() => this.updateBackup()?.stage === 'Completed');
+
+  protected readonly splashProgress = computed(() =>
+    this.installingUpdate() && this.updateBackupRunning() ? backupPercent(this.updateBackup()) : null);
+
+  protected readonly splashDetails = computed<string[]>(() => {
+    if (this.hostSession.stopping() || !this.installingUpdate() || !this.updateBackupRunning()) {
+      return [];
+    }
+    const eta = backupEta(this.updateBackup(), this.localizationService);
+    return eta ? [eta] : [];
+  });
+
+  protected readonly splashSteps = computed<SplashStep[]>(() => {
+    if (this.hostSession.stopping() || !this.installingUpdate()) {
+      return [];
+    }
+    if (!this.updateBackupRunning() && !this.updateBackupDone()) {
+      return [];
+    }
+    const backingUp = this.updateBackupRunning();
+    return [
+      { label: this.localizationService.translateKey(AppStrings.Shell.Splash.StepBackup), state: backingUp ? 'current' : 'done' },
+      { label: this.localizationService.translateKey(AppStrings.Shell.Splash.StepInstall), state: backingUp ? 'pending' : 'current' },
+    ];
+  });
+
+  protected readonly splashCancelLabel = computed(() =>
+    !this.hostSession.stopping() && this.installingUpdate() && this.updateBackupRunning()
+      ? this.localizationService.translateKey(AppStrings.Shell.Splash.CancelUpdate)
+      : null);
 
   protected readonly splashStatus = computed(() => {
     if (this.hostSession.stopping()) {
       return this.localizationService.translateKey(AppStrings.Shell.Splash.Stopping);
     }
     if (this.installingUpdate()) {
-      return this.localizationService.translateKey(AppStrings.Shell.Splash.PreparingUpdate);
+      if (this.updateBackupRunning()) {
+        const percent = backupPercent(this.updateBackup());
+        return percent === null
+          ? this.localizationService.translateKey(AppStrings.Shell.Splash.CreatingBackup)
+          : this.localizationService.translateKey(AppStrings.Shell.Splash.CreatingBackupProgress, { percent });
+      }
+      return this.localizationService.translateKey(this.updateBackupDone()
+        ? AppStrings.Shell.Splash.InstallingUpdate
+        : AppStrings.Shell.Splash.PreparingUpdate);
     }
     if (!this.isConnected() && this.updateService.installFailed()) {
       return this.updateService.error()
@@ -124,13 +197,23 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
+      const installing = this.installingUpdate();
+      const operation = this.backupService.operation();
+      untracked(() => this.trackUpdateBackup(installing, operation));
+    });
+
+    effect(() => {
       if (this.auth.state() === 'authenticated') {
         this.api.connect();
       }
     });
 
     effect(() => {
+      if (this.auth.state() !== 'authenticated') {
+        this.hasConnected.set(false);
+      }
       if (this.isConnected() && this.auth.state() === 'authenticated') {
+        this.hasConnected.set(true);
         void this.initializeApp();
         // Only now: a file the OS opened during startup waits in the shell's queue until something
         // can actually import it, so this must never run against a host that cannot answer yet.
@@ -145,6 +228,9 @@ export class AppComponent implements OnInit, OnDestroy {
     // opens a modal the UI owns on its own, and picking it is what created this page in the first
     // place - so it must not wait for a connection.
     this.menuActions.start();
+    // Capture phase on window runs before every document-level shortcut, so none of them acts on
+    // the page hidden under the reconnecting overlay.
+    window.addEventListener('keydown', this.blockKeysWhileReconnecting, true);
     this.hostSession.start();
     void this.probeKeyRingWithRetry();
   }
@@ -202,7 +288,35 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
+  // A finished backup left over from an earlier attempt is not this install's; a running one already is,
+  // since its first event can arrive before the installing phase does.
+  private trackUpdateBackup(installing: boolean, operation: GetBackupStatusResponse | null): void {
+    if (!installing) {
+      this.staleBackupId = undefined;
+      this.updateBackupId.set(null);
+      return;
+    }
+    if (this.staleBackupId === undefined) {
+      this.staleBackupId = operation && isTerminalBackupStage(operation.stage) ? operation.operationId ?? null : null;
+    }
+    if (this.updateBackupId() === null
+      && operation?.kind === 'Create'
+      && operation.trigger === 'BeforeHostUpdate'
+      && operation.operationId
+      && operation.operationId !== this.staleBackupId) {
+      this.updateBackupId.set(operation.operationId);
+    }
+  }
+
+  protected cancelUpdateBackup(): void {
+    const operationId = this.updateBackup()?.operationId;
+    if (operationId) {
+      void this.backupService.cancelOperation(operationId);
+    }
+  }
+
   ngOnDestroy(): void {
+    window.removeEventListener('keydown', this.blockKeysWhileReconnecting, true);
     if (this.bootstrapRetryTimer !== null) {
       clearTimeout(this.bootstrapRetryTimer);
     }

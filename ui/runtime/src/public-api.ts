@@ -483,6 +483,7 @@ export {
   sliderThumbDiameterPx,
   sliderThumbOffsetPx,
   sliderThumbStrokePx,
+  sliderTrackInsetPx,
 } from './ui-components/bar';
 export {
   artworkCrossfades,
@@ -741,6 +742,7 @@ export {
   type CreateBackupRequest,
   type CreateBackupResponse,
   type DeleteBackupResponse,
+  type CancelBackupOperationResponse,
   type GetBackupRecoveryKeyStateResponse,
   type GetBackupSettingsResponse,
   type GetBackupsResponse,
@@ -1071,6 +1073,7 @@ export {
   type InstalledPlugin,
   type InstalledPluginVersion,
   PLUGIN_INSTALL_ERROR_ALREADY_INSTALLED,
+  PLUGIN_INSTALL_ERROR_CANCELLED,
   PLUGIN_WARNING_ARTIFACT_UNSIGNED,
   PLUGIN_WARNING_SIGNATURE_UNVERIFIED,
   PLUGIN_WARNING_USES_ADB,
@@ -1172,11 +1175,17 @@ export {
   type UpdateScriptResponse,
 } from './protocol/messages/script';
 export {
+  type ApproveSecretBlockRequest,
+  type ApproveSecretBlockResponse,
   type CloneSecretResponse,
   type CreateSecretRequest,
   type CreateSecretResponse,
   type DeleteSecretResponse,
+  type GetSecretApprovalsResponse,
   type RevealSecretResponse,
+  type SecretApprovalItem,
+  type SecretApprovalOwnerKind,
+  type SecretApprovalParameter,
   type SecretKind,
   type UpdateSecretRequest,
   type UpdateSecretResponse,

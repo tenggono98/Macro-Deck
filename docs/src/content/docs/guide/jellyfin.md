@@ -32,6 +32,14 @@ remote-controlled or plays something. Macro Deck remembers devices for 30 days a
 a widget or button set up for your TV keeps working while the TV is off. A device that cannot be
 remote-controlled, such as some smart TV apps, only gets [variables](#variables), not a player entry.
 
+Some clients, such as Google Cast, connect under a new Jellyfin device id each time. Macro Deck recognizes
+them by their name, app and network address, so they keep their player entry and variables. Two clients
+with the same name and app on different addresses, such as two Chromecasts that kept their default name,
+are separate devices. Clients that share a name, app and address, for example behind a reverse proxy,
+share one entry unless they play at the same time; the entry follows the one used most recently. A client
+that comes back under a new device id from a different address, for example after its address changed,
+becomes a new device.
+
 Every server appears in two forms wherever you pick a player:
 
 - **The server name**, for example **Home**: follows whichever session played something most recently.
@@ -117,7 +125,8 @@ Jellyfin offers these events for automations and widget flows:
 - **Connected** and **Disconnected**, for the server itself
 
 Each event can be limited to one **Server** and one **Device**; left empty, it runs for all of them. The
-actions it runs can use the event's values, such as `{{ event.itemName }}`:
+**Device** limit uses the Jellyfin device id, so it no longer matches a client that connects under a new
+id, such as Google Cast. The actions it runs can use the event's values, such as `{{ event.itemName }}`:
 
 | Value | Holds |
 | --- | --- |

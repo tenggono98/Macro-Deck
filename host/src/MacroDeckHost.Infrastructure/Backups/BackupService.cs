@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using MacroDeckHost.Application.Backups;
 using MacroDeckHost.Application.Backups.Retention;
 using MacroDeckHost.Application.Backups.Storage;
@@ -19,9 +18,14 @@ namespace MacroDeckHost.Infrastructure.Backups;
 
 public sealed class BackupService : IBackupService
 {
+	internal const string StagingDirectoryName = "staging";
+
 	private static readonly TimeSpan _waitingTriggerTimeout = TimeSpan.FromSeconds(60);
 
+	private const double WriteWeight = 0.9;
+
 	private readonly IBackupOperationGate _gate;
+	private readonly IBackupOperationCancellation _cancellation;
 	private readonly IBackupProgressReporter _progress;
 	private readonly IBackupSnapshotSource _snapshotSource;
 	private readonly IBackupArchiveWriter _archiveWriter;
@@ -33,9 +37,11 @@ public sealed class BackupService : IBackupService
 	private readonly IServiceScopeFactory _scopeFactory;
 	private readonly TimeProvider _time;
 	private readonly DurableJsonFile _importedStore;
+	private readonly ILogger _logger;
 
 	public BackupService(
 		IBackupOperationGate gate,
+		IBackupOperationCancellation cancellation,
 		IBackupProgressReporter progress,
 		IBackupSnapshotSource snapshotSource,
 		IBackupArchiveWriter archiveWriter,
@@ -49,6 +55,7 @@ public sealed class BackupService : IBackupService
 		ILogger logger)
 	{
 		_gate = gate;
+		_cancellation = cancellation;
 		_progress = progress;
 		_snapshotSource = snapshotSource;
 		_archiveWriter = archiveWriter;
@@ -59,9 +66,10 @@ public sealed class BackupService : IBackupService
 		_paths = paths;
 		_scopeFactory = scopeFactory;
 		_time = time;
+		_logger = logger.ForContext<BackupService>();
 		_importedStore = new DurableJsonFile("imported backups",
 			PersistenceJsonOptions.Default,
-			logger.ForContext<BackupService>());
+			_logger);
 	}
 
 	public async Task<Result<BackupDescriptor, BackupError>> Create(
@@ -77,7 +85,9 @@ public sealed class BackupService : IBackupService
 		using var acquiredLease = leaseResult.Data!;
 		var operationId = acquiredLease.OperationId;
 		var backupId = Guid.NewGuid();
-		var stagingDirectory = Path.Combine(_paths.BackupsDirectory, "staging", operationId.ToString("N"));
+		var stagingDirectory = Path.Combine(_paths.BackupsDirectory, StagingDirectoryName, operationId.ToString("N"));
+		using var cancellation = _cancellation.Begin(operationId, cancellationToken);
+		var token = cancellation.Token;
 
 		try
 		{
@@ -88,7 +98,7 @@ public sealed class BackupService : IBackupService
 			await using (var scope = _scopeFactory.CreateAsyncScope())
 			{
 				var recoveryKeyService = scope.ServiceProvider.GetRequiredService<IBackupRecoveryKeyService>();
-				var ensured = await recoveryKeyService.EnsureCreated(cancellationToken);
+				var ensured = await recoveryKeyService.EnsureCreated(token);
 				if (!ensured.Success)
 				{
 					return Fail(operationId, request.Trigger, backupId, ensured.Error!.Value, ensured.ErrorMessage);
@@ -114,15 +124,12 @@ public sealed class BackupService : IBackupService
 					"Not enough free space is available to stage the backup.");
 			}
 
-			ReportStatus(operationId,
-				BackupOperationStage.CreatingSnapshot,
-				request.Trigger,
-				backupId,
-				plan.TotalBytes);
+			ReportStatus(operationId, BackupOperationStage.CreatingSnapshot, request.Trigger, backupId);
 
 			var databaseCopyPath = Path.Combine(stagingDirectory, "database.db");
-			await _snapshotSource.CopyDatabase(databaseCopyPath, cancellationToken);
+			await _snapshotSource.CopyDatabase(databaseCopyPath, token);
 			var schemaVersion = _snapshotSource.ReadSchemaVersion(databaseCopyPath);
+			var dataBytes = plan.TotalBytes + new FileInfo(databaseCopyPath).Length;
 
 			var manifest = BuildManifest(backupId,
 				request,
@@ -131,32 +138,32 @@ public sealed class BackupService : IBackupService
 				schemaVersion,
 				_time.GetUtcNow());
 
-			ReportStatus(operationId,
-				BackupOperationStage.Encrypting,
-				request.Trigger,
-				backupId,
-				plan.TotalBytes);
-			ReportStatus(operationId,
+			ReportWriteProgress(operationId, BackupOperationStage.Encrypting, request.Trigger, backupId, 0, dataBytes);
+			ReportWriteProgress(operationId, BackupOperationStage.Saving, request.Trigger, backupId, 0, dataBytes);
+			var written = new ByteCounter(processed => ReportWriteProgress(operationId,
 				BackupOperationStage.Saving,
 				request.Trigger,
 				backupId,
-				plan.TotalBytes);
+				processed,
+				dataBytes));
 
 			var archivePath = Path.Combine(stagingDirectory, "archive" + BackupFileNames.Extension);
 			await using (var archiveStream
 				= new FileStream(archivePath, FileMode.Create, FileAccess.Write, FileShare.None))
 			{
 				await _archiveWriter.Write(archiveStream,
-					new BackupArchiveWriteRequest(manifest, plan, databaseCopyPath),
+					new BackupArchiveWriteRequest(manifest, plan, databaseCopyPath, written),
 					recoveryKey,
-					cancellationToken);
+					token);
 			}
 
-			ReportStatus(operationId,
-				BackupOperationStage.Validating,
+			var archiveLength = new FileInfo(archivePath).Length;
+			ReportValidationProgress(operationId, request.Trigger, backupId, 0, archiveLength);
+			var validated = new ByteCounter(processed => ReportValidationProgress(operationId,
 				request.Trigger,
 				backupId,
-				plan.TotalBytes);
+				processed,
+				archiveLength));
 
 			var validationPath = Path.Combine(stagingDirectory, "validation.tmp");
 
@@ -169,14 +176,14 @@ public sealed class BackupService : IBackupService
 				await _archiveReader.DecryptPayload(validateStream,
 					recoveryKey,
 					validationPath,
-					cancellationToken: cancellationToken);
+					validated,
+					token);
 			}
 
 			TryDeleteFile(validationPath);
 
 			var provider = _storageRegistry.Primary;
 			var suggestedName = $"{manifest.CreatedAt:yyyyMMddTHHmmssZ}-{backupId:N}";
-			var archiveLength = new FileInfo(archivePath).Length;
 
 			var writeResult = await provider.Write(new BackupStorageWriteRequest(suggestedName,
 					archiveLength,
@@ -186,7 +193,7 @@ public sealed class BackupService : IBackupService
 						await source.CopyToAsync(destination, ct);
 					},
 					archivePath),
-				cancellationToken);
+				token);
 
 			if (!writeResult.Success)
 			{
@@ -213,12 +220,30 @@ public sealed class BackupService : IBackupService
 				BackupOperationStage.Completed,
 				request.Trigger,
 				backupId,
-				plan.TotalBytes);
+				100,
+				dataBytes,
+				dataBytes,
+				1);
 
-			await PublishListChanged("created", cancellationToken);
-			await _retention.Apply(cancellationToken);
+			// The backup is stored and reported Completed: a cancel arriving now must not turn it into a failure.
+			await PublishListChanged("created", CancellationToken.None);
+			await _retention.Apply(CancellationToken.None);
 
 			return Result.Ok<BackupDescriptor, BackupError>(descriptor);
+		}
+		catch (OperationCanceledException) when (cancellation.IsCancelled || cancellationToken.IsCancellationRequested)
+		{
+			var cancelled = Fail(operationId,
+				request.Trigger,
+				backupId,
+				BackupError.Cancelled,
+				"The backup was cancelled.");
+			if (cancellationToken.IsCancellationRequested)
+			{
+				throw;
+			}
+
+			return cancelled;
 		}
 		catch (BackupCryptoException e)
 		{
@@ -262,14 +287,12 @@ public sealed class BackupService : IBackupService
 			var manifest = _archiveReader.ReadManifest(stream);
 			if (manifest is null)
 			{
-				return Result.Fail<BackupInspection, BackupError>(BackupError.InvalidArchive,
-					"The archive manifest could not be read.");
+				return Result.Fail<BackupInspection, BackupError>(BackupError.InvalidArchive);
 			}
 
 			if (manifest.FormatVersion > BackupArchiveManifest.CurrentFormatVersion)
 			{
-				return Result.Fail<BackupInspection, BackupError>(BackupError.UnsupportedVersion,
-					"This archive was created by a newer version of Macro Deck.");
+				return Result.Fail<BackupInspection, BackupError>(BackupError.UnsupportedVersion);
 			}
 
 			await using var scope = _scopeFactory.CreateAsyncScope();
@@ -348,14 +371,12 @@ public sealed class BackupService : IBackupService
 			var manifest = _archiveReader.ReadManifest(stream);
 			if (manifest is null)
 			{
-				return Result.Fail<BackupDescriptor, BackupError>(BackupError.InvalidArchive,
-					"The archive manifest could not be read.");
+				return Result.Fail<BackupDescriptor, BackupError>(BackupError.InvalidArchive);
 			}
 
 			if (manifest.FormatVersion > BackupArchiveManifest.CurrentFormatVersion)
 			{
-				return Result.Fail<BackupDescriptor, BackupError>(BackupError.UnsupportedVersion,
-					"This archive was created by a newer version of Macro Deck.");
+				return Result.Fail<BackupDescriptor, BackupError>(BackupError.UnsupportedVersion);
 			}
 
 			var existing = await _catalog.Find(manifest.BackupId, cancellationToken);
@@ -491,12 +512,60 @@ public sealed class BackupService : IBackupService
 		return Result.Fail<BackupDescriptor, BackupError>(error, errorMessage);
 	}
 
+	private void ReportWriteProgress(
+		Guid operationId,
+		BackupOperationStage stage,
+		BackupTrigger trigger,
+		Guid backupId,
+		long processed,
+		long dataBytes)
+	{
+		var fraction = WriteWeight * PassFraction(processed, dataBytes);
+		ReportStatus(operationId,
+			stage,
+			trigger,
+			backupId,
+			ToPercent(fraction),
+			Math.Min(processed, dataBytes),
+			dataBytes,
+			fraction);
+	}
+
+	private void ReportValidationProgress(
+		Guid operationId,
+		BackupTrigger trigger,
+		Guid backupId,
+		long processed,
+		long archiveLength)
+	{
+		var fraction = WriteWeight + (1 - WriteWeight) * PassFraction(processed, archiveLength);
+		ReportStatus(operationId,
+			BackupOperationStage.Validating,
+			trigger,
+			backupId,
+			ToPercent(fraction),
+			fraction: fraction);
+	}
+
+	private static double PassFraction(long processed, long total)
+	{
+		return total > 0 ? Math.Clamp((double)processed / total, 0, 1) : 0;
+	}
+
+	private static int ToPercent(double fraction)
+	{
+		return Math.Min(99, (int)Math.Floor(fraction * 100));
+	}
+
 	private void ReportStatus(
 		Guid operationId,
 		BackupOperationStage stage,
 		BackupTrigger trigger,
 		Guid? backupId,
+		int? percentComplete = null,
+		long? bytesProcessed = null,
 		long? totalBytes = null,
+		double? fraction = null,
 		BackupError? error = null,
 		string? errorMessage = null)
 	{
@@ -504,13 +573,30 @@ public sealed class BackupService : IBackupService
 			BackupOperationKind.Create,
 			stage,
 			trigger,
-			null,
-			null,
+			percentComplete,
+			bytesProcessed,
 			totalBytes,
 			backupId,
 			error,
 			errorMessage,
-			_time.GetUtcNow()));
+			_time.GetUtcNow()) { ProgressFraction = fraction });
+	}
+
+	private sealed class ByteCounter : IProgress<long>
+	{
+		private readonly Action<long> _advanced;
+		private long _processed;
+
+		public ByteCounter(Action<long> advanced)
+		{
+			_advanced = advanced;
+		}
+
+		public void Report(long value)
+		{
+			_processed += value;
+			_advanced(_processed);
+		}
 	}
 
 	private async Task<Result<ResolvedSource, BackupError>> OpenSource(
@@ -572,22 +658,13 @@ public sealed class BackupService : IBackupService
 
 			using var payload = new FileStream(tempPath, FileMode.Open, FileAccess.Read, FileShare.Read);
 			using var zip = new ZipArchive(payload, ZipArchiveMode.Read);
-			var entry = zip.GetEntry(BackupFileNames.ContentIndexEntry);
-			if (entry is null)
+			var read = await BackupContentIndexReader.Read(zip, cancellationToken);
+			if (!read.Success)
 			{
 				return DeclaredComponents(manifest);
 			}
 
-			using var entryStream = entry.Open();
-			var index = await JsonSerializer.DeserializeAsync<BackupContentIndex>(entryStream,
-				PersistenceJsonOptions.Default,
-				cancellationToken);
-
-			if (index is null)
-			{
-				return DeclaredComponents(manifest);
-			}
-
+			var index = read.Data!;
 			var byId = index.Components.ToDictionary(component => component.Id);
 
 			return
@@ -609,7 +686,17 @@ public sealed class BackupService : IBackupService
 	private void MarkImported(Guid backupId)
 	{
 		var path = ImportedBackupRegistry.ResolvePath(_paths);
-		var document = _importedStore.Read<ImportedBackupsDocument>(path, false) ?? new ImportedBackupsDocument();
+		var document = _importedStore.Read<ImportedBackupsDocument>(path, false);
+		if (document is null && (File.Exists(path) || File.Exists(path + DurableJsonFile.BackupSuffix)))
+		{
+			_logger.Warning("The imported backups file {Path} could not be read; backup {BackupId} is not marked "
+				+ "as imported",
+				path,
+				backupId);
+			return;
+		}
+
+		document ??= new ImportedBackupsDocument();
 		if (document.BackupIds.Contains(backupId))
 		{
 			return;

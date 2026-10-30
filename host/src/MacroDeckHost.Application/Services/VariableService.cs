@@ -576,12 +576,13 @@ public class VariableService : IVariableService
 				$"A variable named '{canonicalName}' already exists in this scope");
 		}
 
+		var previousName = existing.Name;
 		if (!_registry.Rename(existing.Id, canonicalName, DateTime.UtcNow))
 		{
 			return Result.Fail<VariableEntity, VariableError>(VariableError.NotFound, "Variable not found");
 		}
 
-		await _mediator.Publish(new VariableUpdatedNotification(existing));
+		await _mediator.Publish(new VariableUpdatedNotification(existing, previousName));
 		return Result.Ok<VariableEntity, VariableError>(existing);
 	}
 
@@ -734,6 +735,22 @@ public class VariableService : IVariableService
 
 		_registry.Remove(existing.Id);
 		await _mediator.Publish(new VariableDeletedNotification(existing));
+	}
+
+	public async Task<bool> RestoreUserVariable(VariableEntity snapshot)
+	{
+		if (snapshot.Classification != VariableClassification.User
+			|| snapshot.FileSource is not null
+			|| snapshot.TemplateSource is not null
+			|| !VariableNameSanitizer.IsValid(snapshot.Name)
+			|| !_registry.TryAdd(snapshot, true))
+		{
+			return false;
+		}
+
+		PersistUserVariables();
+		await _mediator.Publish(new VariableCreatedNotification(snapshot));
+		return true;
 	}
 
 	private async Task<Result<VariableEntity, VariableError>> CreateInternal(

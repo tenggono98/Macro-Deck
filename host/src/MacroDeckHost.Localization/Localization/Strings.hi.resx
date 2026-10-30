@@ -779,6 +779,43 @@
   <data name="Backup.Progress.ByteDetail" xml:space="preserve">
     <value>{total} में से {processed}</value>
   </data>
+  <data name="Backup.Progress.RestoreCancelledToast" xml:space="preserve">
+    <value>पुनर्स्थापना रद्द की गई</value>
+  </data>
+  <data name="Backup.Progress.CancelledToast" xml:space="preserve">
+    <value>बैकअप रद्द किया गया</value>
+  </data>
+  <data name="Backup.Progress.CancelRestore" xml:space="preserve">
+    <value>पुनर्स्थापना रद्द करें</value>
+  </data>
+  <data name="Backup.Progress.Cancel" xml:space="preserve">
+    <value>बैकअप रद्द करें</value>
+  </data>
+  <data name="Backup.Progress.StageVerifying" xml:space="preserve">
+    <value>बैकअप की जाँच</value>
+  </data>
+  <data name="Backup.Progress.StageCopying" xml:space="preserve">
+    <value>आपका डेटा कॉपी और एन्क्रिप्ट हो रहा है</value>
+  </data>
+  <data name="Backup.Progress.StagePreparing" xml:space="preserve">
+    <value>तैयारी</value>
+  </data>
+  <data name="Backup.Progress.TitleRestoring" xml:space="preserve">
+    <value>बैकअप पुनर्स्थापित हो रहा है</value>
+  </data>
+  <data name="Backup.Progress.TitleCreating" xml:space="preserve">
+    <value>बैकअप बन रहा है</value>
+  </data>
+  <data name="Backup.Progress.CheckingBackup" xml:space="preserve">
+    <value>बैकअप की जाँच हो रही है</value>
+  </data>
+  <data name="Backup.Progress.CreatingSafetyBackup" xml:space="preserve">
+    <value>सुरक्षा बैकअप बन रहा है</value>
+  </data>
+  <data name="Backup.Progress.Percent" xml:space="preserve">
+    <value>{percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Backup.RecoveryKey.CreatedTitle" xml:space="preserve">
     <value>अपनी रिकवरी कुंजी सहेजें</value>
   </data>
@@ -842,8 +879,14 @@
   <data name="Backup.Trigger.Scheduled" xml:space="preserve">
     <value>शेड्यूल किया गया</value>
   </data>
+  <data name="Backup.Warning.AccountsWithoutIntegrations" xml:space="preserve">
+    <value>खाते और डिवाइस बिना एकीकरण और सीक्रेट के पुनर्स्थापित होते हैं। अगर बैकअप किसी दूसरे कंप्यूटर पर या कुछ समय पहले बनाया गया था, तो सभी साइन आउट हो जाएँगे और डिवाइस को फिर से पेयर करना होगा।</value>
+  </data>
   <data name="Backup.Warning.AccountsWithoutProfiles" xml:space="preserve">
     <value>खाते और डिवाइस बिना प्रोफ़ाइल के पुनर्स्थापित होते हैं। जो डिवाइस किसी ऐसी स्टार्टअप प्रोफ़ाइल की ओर इशारा करता है जो अब मौजूद नहीं है, वह डिफ़ॉल्ट पर लौट जाता है।</value>
+  </data>
+  <data name="Backup.Warning.AppSettingsWithoutIntegrations" xml:space="preserve">
+    <value>ऐप सेटिंग्स बिना एकीकरण और सीक्रेट के पुनर्स्थापित होती हैं। अगर बैकअप किसी दूसरे कंप्यूटर पर या कुछ समय पहले बनाया गया था, तो HTTPS को फिर से सेट अप करना पड़ सकता है।</value>
   </data>
   <data name="Backup.Warning.AutomationsWithoutIntegrations" xml:space="preserve">
     <value>ऑटोमेशन बिना एकीकरण और सीक्रेट के पुनर्स्थापित होते हैं।</value>
@@ -856,6 +899,12 @@
   </data>
   <data name="Backup.Warning.Generic" xml:space="preserve">
     <value>{group} बिना {dependency} के पुनर्स्थापित होता है, इसलिए इसके कुछ हिस्से काम नहीं कर सकते।</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAccounts" xml:space="preserve">
+    <value>एकीकरण और सीक्रेट बिना खातों के पुनर्स्थापित होते हैं। अगर बैकअप किसी दूसरे कंप्यूटर पर या कुछ समय पहले बनाया गया था, तो सभी साइन आउट हो जाएँगे और डिवाइस को फिर से पेयर करना होगा।</value>
+  </data>
+  <data name="Backup.Warning.IntegrationsWithoutAppSettings" xml:space="preserve">
+    <value>एकीकरण और सीक्रेट बिना ऐप सेटिंग्स के पुनर्स्थापित होते हैं। अगर बैकअप किसी दूसरे कंप्यूटर पर या कुछ समय पहले बनाया गया था, तो HTTPS को फिर से सेट अप करना पड़ सकता है।</value>
   </data>
   <data name="Backup.Warning.PluginsWithoutIntegrations" xml:space="preserve">
     <value>प्लगइन बिना एकीकरण और सीक्रेट के पुनर्स्थापित होते हैं। प्लगइन के क्रेडेंशियल गायब होंगे।</value>
@@ -883,6 +932,9 @@
   </data>
   <data name="Bootstrapper.Errors.CryptographyUnavailable" xml:space="preserve">
     <value>Macro Deck ऑपरेटिंग सिस्टम की क्रिप्टोग्राफ़ी सेवा का उपयोग नहीं कर सका। Windows पर सुनिश्चित करें कि CNG Key Isolation (KeyIso) सेवा चल रही है, या कंप्यूटर को पुनः प्रारंभ करें।</value>
+  </data>
+  <data name="Bootstrapper.Errors.DatabaseFromNewerVersion" xml:space="preserve">
+    <value>इस डेटा फ़ोल्डर का पिछली बार Macro Deck के नए संस्करण से उपयोग किया गया था। वह संस्करण फिर से इंस्टॉल करें; आपका डेटा नहीं बदला गया है।</value>
   </data>
   <data name="Bootstrapper.Errors.HostBinaryMissing" xml:space="preserve">
     <value>Macro Deck होस्ट बाइनरी गायब है:
@@ -1011,6 +1063,27 @@ Finder में Macro Deck को स्वयं Applications फ़ोल्�
   <data name="Bootstrapper.InstallationDamaged.Title" xml:space="preserve">
     <value>Macro Deck पूरी तरह अपडेट नहीं हुआ</value>
   </data>
+  <data name="Bootstrapper.Mcp.TokenMissing" xml:space="preserve">
+    <value>{variable} सेट नहीं है। सेटिंग्स &gt; AI क्लाइंट से Claude Desktop एक्सटेंशन फिर से इंस्टॉल करें।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotRunning" xml:space="preserve">
+    <value>Macro Deck नहीं चल रहा है। Macro Deck शुरू करें और फिर से कोशिश करें।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.TokenRejected" xml:space="preserve">
+    <value>Macro Deck ने ऐक्सेस टोकन अस्वीकार कर दिया, क्योंकि उसे रद्द या हटा दिया गया है। सेटिंग्स &gt; AI क्लाइंट में नया टोकन बनाएँ और एक्सटेंशन फिर से इंस्टॉल करें।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Unavailable" xml:space="preserve">
+    <value>Macro Deck में कोई MCP सर्वर उपलब्ध नहीं है, क्योंकि वह लॉक है या AI क्लाइंट का समर्थन नहीं करता। Macro Deck अनलॉक करें और फिर से कोशिश करें।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.Refused" xml:space="preserve">
+    <value>Macro Deck ने अनुरोध अस्वीकार कर दिया (HTTP {status})।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.ConnectionLost" xml:space="preserve">
+    <value>जवाब आने से पहले Macro Deck से कनेक्शन टूट गया। हो सकता है अनुरोध चल गया हो, इसलिए दोबारा कोशिश करने से पहले जाँच लें।</value>
+  </data>
+  <data name="Bootstrapper.Mcp.NotInitialized" xml:space="preserve">
+    <value>MCP सत्र आरंभ नहीं किया गया है।</value>
+  </data>
   <data name="Bootstrapper.Menu.About" xml:space="preserve">
     <value>Macro Deck के बारे में</value>
   </data>
@@ -1112,6 +1185,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Bootstrapper.Update.Later" xml:space="preserve">
     <value>बाद में</value>
   </data>
+  <data name="Bootstrapper.Update.BackupCancelled" xml:space="preserve">
+    <value>अपडेट इंस्टॉल नहीं हुआ क्योंकि उसका बैकअप रद्द कर दिया गया।</value>
+  </data>
   <data name="Bootstrapper.Update.LinuxNotSupported" xml:space="preserve">
     <value>Macro Deck Linux पर अपडेट स्वयं इंस्टॉल नहीं करता। {downloadPageUrl} से नया संस्करण डाउनलोड करें और अपना AppImage, DEB या RPM इंस्टॉल अपडेट करें।</value>
   </data>
@@ -1145,9 +1221,35 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
     <value>आपके पास अभी {version} है</value>
     <comment>[version:string]</comment>
   </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpStatus" xml:space="preserve">
+    <value>अपडेट से पहले बैकअप बन रहा है…</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.CancelBackup" xml:space="preserve">
+    <value>अपडेट रद्द करें</value>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.BackingUpProgressStatus" xml:space="preserve">
+    <value>अपडेट से पहले बैकअप बन रहा है… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
   <data name="Bootstrapper.UpdateWindow.DownloadingStatus" xml:space="preserve">
     <value>डाउनलोड हो रहा है… {percent}%</value>
     <comment>[percent:int]</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.One" xml:space="preserve">
+    <value>लगभग {count} मिनट शेष</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaMinutesLeft.Other" xml:space="preserve">
+    <value>लगभग {count} मिनट शेष</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, a minute or more.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.One" xml:space="preserve">
+    <value>लगभग {count} सेकंड शेष</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
+  </data>
+  <data name="Bootstrapper.UpdateWindow.EtaSecondsLeft.Other" xml:space="preserve">
+    <value>लगभग {count} सेकंड शेष</value>
+    <comment>[plural][count:int] Remaining time of the backup before an update, under a minute.</comment>
   </data>
   <data name="Bootstrapper.UpdateWindow.InstallOnQuitStatus" xml:space="preserve">
     <value>अपडेट डाउनलोड हो गया है। Macro Deck इसे बंद करने पर इंस्टॉल करेगा।</value>
@@ -1344,6 +1446,21 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="ConfigFlow.WaitingForAuthorization" xml:space="preserve">
     <value>प्राधिकरण की प्रतीक्षा है…</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteTitle" xml:space="preserve">
+    <value>प्राधिकरण पूरा हुआ</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.CompleteMessage" xml:space="preserve">
+    <value>आप यह विंडो बंद करके Macro Deck पर लौट सकते हैं।</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.FailedMessage" xml:space="preserve">
+    <value>कारण देखने और फिर से प्रयास करने के लिए Macro Deck पर लौटें। आप यह विंडो बंद कर सकते हैं।</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedTitle" xml:space="preserve">
+    <value>प्राधिकरण का मिलान नहीं हो सका</value>
+  </data>
+  <data name="ConfigFlow.OAuthCallback.UnmatchedMessage" xml:space="preserve">
+    <value>आप यह विंडो बंद कर सकते हैं।</value>
   </data>
   <data name="ConfigUi.ViewUnavailable" xml:space="preserve">
     <value>यह व्यू अभी उपलब्ध नहीं है। नीचे दिए फ़ील्ड के साथ जारी रखें।</value>
@@ -2416,6 +2533,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Errors.Actions.ProviderTimeout" xml:space="preserve">
     <value>क्रिया ने समय पर जवाब नहीं दिया</value>
   </data>
+  <data name="Errors.Actions.SecretApprovalPending" xml:space="preserve">
+    <value>यह चरण एक सीक्रेट का उपयोग करता है और आपकी स्वीकृति की प्रतीक्षा कर रहा है।</value>
+  </data>
   <data name="Errors.Actions.ServiceUnreachable" xml:space="preserve">
     <value>सेवा तक पहुँचा नहीं जा सका।</value>
   </data>
@@ -2503,6 +2623,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Errors.Backup.ImportFailed" xml:space="preserve">
     <value>बैकअप आयात नहीं किया जा सका</value>
+  </data>
+  <data name="Errors.Backup.IncompatibleVersion" xml:space="preserve">
+    <value>यह बैकअप Macro Deck के इस संस्करण से पुनर्स्थापित नहीं किया जा सकता</value>
   </data>
   <data name="Errors.Backup.InspectFailed" xml:space="preserve">
     <value>बैकअप की जाँच नहीं की जा सकी</value>
@@ -2607,9 +2730,15 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Errors.Config.FlowExpired" xml:space="preserve">
     <value>कॉन्फ़िग प्रवाह सत्र समाप्त हो गया है। कृपया फिर से शुरू करें।</value>
   </data>
+  <data name="Errors.Config.ForeignSecretReference" xml:space="preserve">
+    <value>यह मान ऐसे सीक्रेट को संदर्भित करता है जो इस कॉन्फ़िगरेशन का हिस्सा नहीं है।</value>
+  </data>
   <data name="Errors.Config.InvalidEntryId" xml:space="preserve">
     <value>'{id}' एक मान्य कॉन्फ़िग एंट्री ID नहीं है</value>
     <comment>[id:string]</comment>
+  </data>
+  <data name="Errors.Config.ReconfigureRequiresApp" xml:space="preserve">
+    <value>सीक्रेट वाला कॉन्फ़िगरेशन केवल Macro Deck ऐप में बदला जा सकता है।</value>
   </data>
   <data name="Errors.Device.LoadFailed" xml:space="preserve">
     <value>डिवाइस लोड करना विफल रहा</value>
@@ -2832,6 +2961,24 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Errors.KeyRing.RecoveryKeyInvalid" xml:space="preserve">
     <value>यह रिकवरी कुंजी इस इंस्टॉलेशन को अनलॉक नहीं करती।</value>
   </data>
+  <data name="Errors.Mcp.ExtensionTokenInvalid" xml:space="preserve">
+    <value>इस ऐक्सेस टोकन का अब उपयोग नहीं किया जा सकता। एक्सटेंशन डाउनलोड करने के लिए नया टोकन बनाएँ।</value>
+  </data>
+  <data name="Errors.Mcp.ExtensionUnavailable" xml:space="preserve">
+    <value>Claude Desktop एक्सटेंशन केवल macOS और Windows पर इंस्टॉल किए गए Macro Deck ऐप में उपलब्ध है।</value>
+  </data>
+  <data name="Errors.Mcp.PolicyProviderInvalid" xml:space="preserve">
+    <value>कोई प्रदाता चुनें।</value>
+  </data>
+  <data name="Errors.Mcp.TokenAlreadyRevoked" xml:space="preserve">
+    <value>यह ऐक्सेस टोकन पहले ही रद्द किया जा चुका है।</value>
+  </data>
+  <data name="Errors.Mcp.TokenNameInvalid" xml:space="preserve">
+    <value>अधिकतम 64 वर्णों का नाम दर्ज करें।</value>
+  </data>
+  <data name="Errors.Mcp.TokenNotFound" xml:space="preserve">
+    <value>इस ID वाला कोई ऐक्सेस टोकन मौजूद नहीं है।</value>
+  </data>
   <data name="Errors.Migration.OperationFailed" xml:space="preserve">
     <value>माइग्रेशन पूरा नहीं किया जा सका।</value>
   </data>
@@ -2867,6 +3014,15 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Errors.Plugins.InstallBlockedByTakeover" xml:space="preserve">
     <value>एक डेवलपमेंट बिल्ड ने इस प्लगइन पर कब्ज़ा कर लिया है। इसे इंस्टॉल या अपडेट करने से पहले टेकओवर समाप्त करें।</value>
+  </data>
+  <data name="Errors.Plugins.SignerMismatch" xml:space="preserve">
+    <value>यह प्लगइन उस संस्करण से अलग प्रकाशक द्वारा साइन किया गया है जो आपके पास पहले से है, इसलिए इसे इंस्टॉल नहीं किया गया।</value>
+  </data>
+  <data name="Errors.Plugins.UninstallDataNotDeleted" xml:space="preserve">
+    <value>प्लगइन का कुछ सहेजा गया डेटा नहीं हटाया जा सका क्योंकि एक फ़ाइल अभी उपयोग में है, इसलिए प्लगइन अनइंस्टॉल नहीं किया गया। उसका उपयोग करने वाले प्रोग्राम बंद करें और फिर से कोशिश करें।</value>
+  </data>
+  <data name="Errors.Plugins.UninstallStopFailed" xml:space="preserve">
+    <value>प्लगइन को रोका नहीं जा सका, इसलिए कुछ भी नहीं हटाया गया। फिर से कोशिश करें।</value>
   </data>
   <data name="Errors.Plugins.HostShuttingDown" xml:space="preserve">
     <value>Macro Deck बंद हो रहा है, इसलिए प्लगइन शुरू नहीं किया गया।</value>
@@ -2962,6 +3118,12 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Errors.Scripts.NotFound" xml:space="preserve">
     <value>स्क्रिप्ट नहीं मिली</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalChanged" xml:space="preserve">
+    <value>इस बीच यह चरण बदल गया है। कृपया इसकी फिर से समीक्षा करें।</value>
+  </data>
+  <data name="Errors.Secrets.ApprovalNotFound" xml:space="preserve">
+    <value>यह चरण अब मौजूद नहीं है।</value>
   </data>
   <data name="Errors.Secrets.NotFound" xml:space="preserve">
     <value>सीक्रेट '{id}' नहीं मिला</value>
@@ -8610,8 +8772,8 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
     <value>पाठ टाइप करें</value>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextParameterDescription" xml:space="preserve">
-    <value>टाइप करने वाला पाठ। वेरिएबल/टेम्पलेट समर्थित हैं, जैसे {{ vars.name }}।</value>
-    <comment>The literal {{ vars.name }} is Macro Deck's own template syntax shown as an example, not a translation placeholder.</comment>
+    <value>टाइप करने वाला पाठ। वेरिएबल/टेम्पलेट समर्थित हैं, जैसे {example}।</value>
+    <comment>{example} is filled with Macro Deck's own template syntax ({{ vars.name }}); keep it as it is.</comment>
   </data>
   <data name="Integrations.Keyboard.Actions.TypeTextPlaceholder" xml:space="preserve">
     <value>Hello World</value>
@@ -9993,6 +10155,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Integrations.Page.InstallFailed" xml:space="preserve">
     <value>प्लगइन इंस्टॉल नहीं हो सका</value>
   </data>
+  <data name="Integrations.Page.InstallCancelled" xml:space="preserve">
+    <value>प्लगइन अपडेट रद्द किया गया। कुछ भी नहीं बदला।</value>
+  </data>
   <data name="Integrations.Page.InstallFromFileAction" xml:space="preserve">
     <value>फ़ाइल से इंस्टॉल करें…</value>
   </data>
@@ -10056,7 +10221,7 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
     <value>प्लगइन अनइंस्टॉल करें?</value>
   </data>
   <data name="Integrations.Page.UninstallHint" xml:space="preserve">
-    <value>प्लगइन की अपनी सेटिंग्स रखने के लिए इसे बंद न करें, ताकि बाद में फिर इंस्टॉल करने पर वहीं से काम शुरू हो। इससे Macro Deck में {name} कैसे सेट है, इस पर असर नहीं पड़ता।</value>
+    <value>प्लगइन की अपनी सेटिंग्स और उसके लिए सेट किए गए खाते और कनेक्शन रखने के लिए इसे बंद रहने दें, ताकि बाद में फिर इंस्टॉल करने पर वहीं से काम शुरू हो। इसे चालू करने पर सहेजी गई साइन-इन जानकारी सहित ये भी हट जाते हैं। इससे Macro Deck में अन्य जगहों पर {name} कैसे सेट है, इस पर असर नहीं पड़ता।</value>
   </data>
   <data name="Integrations.Page.UninstallMenuAction" xml:space="preserve">
     <value>अनइंस्टॉल करें…</value>
@@ -11442,7 +11607,7 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
     <value>स्लीप</value>
   </data>
   <data name="Integrations.System.Actions.SupportsVariablesHint" xml:space="preserve">
-    <value>वेरिएबल समर्थित हैं: {{ vars.name }}</value>
+    <value>वेरिएबल समर्थित हैं: {example}</value>
   </data>
   <data name="Integrations.System.Actions.VolumeAmount.Label" xml:space="preserve">
     <value>मात्रा (%)</value>
@@ -14710,6 +14875,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Nav.Scripts" xml:space="preserve">
     <value>स्क्रिप्ट</value>
   </data>
+  <data name="Nav.SecretApprovals" xml:space="preserve">
+    <value>स्वीकृतियाँ</value>
+  </data>
   <data name="Nav.Store" xml:space="preserve">
     <value>स्टोर</value>
   </data>
@@ -14803,6 +14971,15 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Notifications.IconImport.Importing" xml:space="preserve">
     <value>{pack} में आइकन आयात हो रहे हैं</value>
   </data>
+  <data name="Notifications.Backup.RestoreFailed" xml:space="preserve">
+    <value>पुनर्स्थापना विफल रही</value>
+  </data>
+  <data name="Notifications.Backup.RestoreNotCompletedMessage" xml:space="preserve">
+    <value>बैकअप पुनर्स्थापित नहीं किया जा सका। आपका डेटा पुनर्स्थापना से पहले जैसा ही है।</value>
+  </data>
+  <data name="Notifications.Backup.RestoreRollbackIncompleteMessage" xml:space="preserve">
+    <value>बैकअप पुनर्स्थापित नहीं किया जा सका, और आपके कुछ डेटा को अभी तक वापस नहीं रखा जा सका। इसे पूरा करने के लिए Macro Deck को फिर से शुरू करें।</value>
+  </data>
   <data name="Notifications.IconImport.NothingImportable" xml:space="preserve">
     <value>वहाँ कुछ भी आइकन के रूप में आयात नहीं किया जा सका।</value>
   </data>
@@ -14893,6 +15070,12 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Notifications.PluginTakeoverRequestedMessage" xml:space="preserve">
     <value>{name} एक इंस्टॉल किए गए प्लगइन को बदलना चाहता है और Macro Deck में आपकी मंज़ूरी का इंतज़ार कर रहा है।</value>
     <comment>[name:string]</comment>
+  </data>
+  <data name="Notifications.SecretApprovalPendingMessage" xml:space="preserve">
+    <value>सीक्रेट का उपयोग करने वाला एक चरण बदला गया है और आपकी स्वीकृति तक रुका रहेगा।</value>
+  </data>
+  <data name="Notifications.SecretApprovalPendingTitle" xml:space="preserve">
+    <value>एक चरण आपकी स्वीकृति की प्रतीक्षा कर रहा है</value>
   </data>
   <data name="Notifications.StoreAutoUpdateFailed.One" xml:space="preserve">
     <value>{count} स्वचालित एक्सटेंशन अपडेट विफल हुआ</value>
@@ -15547,6 +15730,82 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Scripts.ValidationHint" xml:space="preserve">
     <value>कुछ क्रियाओं को अभी मान चाहिए।</value>
+  </data>
+  <data name="SecretApprovals.AlsoUsedBy" xml:space="preserve">
+    <value>इनके द्वारा भी उपयोग किया गया: {owners}</value>
+    <comment>[owners:string]</comment>
+  </data>
+  <data name="SecretApprovals.Approve" xml:space="preserve">
+    <value>स्वीकृत करें</value>
+  </data>
+  <data name="SecretApprovals.ApproveFailed" xml:space="preserve">
+    <value>चरण स्वीकृत नहीं हो सका।</value>
+  </data>
+  <data name="SecretApprovals.ApprovedColumn" xml:space="preserve">
+    <value>स्वीकृत</value>
+  </data>
+  <data name="SecretApprovals.ChangedBadge" xml:space="preserve">
+    <value>स्वीकृति के बाद बदला गया</value>
+  </data>
+  <data name="SecretApprovals.ChangedTag" xml:space="preserve">
+    <value>बदला गया</value>
+  </data>
+  <data name="SecretApprovals.EmptyHeading" xml:space="preserve">
+    <value>स्वीकृति के लिए कुछ भी प्रतीक्षा में नहीं है</value>
+  </data>
+  <data name="SecretApprovals.EmptyMessage" xml:space="preserve">
+    <value>सीक्रेट का उपयोग करने वाले सभी चरण स्वीकृत हैं।</value>
+  </data>
+  <data name="SecretApprovals.Intro" xml:space="preserve">
+    <value>सीक्रेट का उपयोग करने वाले चरण आपकी स्वीकृति के बाद ही चलते हैं। देखें कि क्या बदला है, फिर उन्हें स्वीकृत करें।</value>
+  </data>
+  <data name="SecretApprovals.LoadFailed" xml:space="preserve">
+    <value>स्वीकृतियाँ लोड नहीं हो सकीं।</value>
+  </data>
+  <data name="SecretApprovals.Loading" xml:space="preserve">
+    <value>स्वीकृतियाँ लोड हो रही हैं…</value>
+  </data>
+  <data name="SecretApprovals.NewBadge" xml:space="preserve">
+    <value>नया चरण</value>
+  </data>
+  <data name="SecretApprovals.NotSet" xml:space="preserve">
+    <value>सेट नहीं है</value>
+  </data>
+  <data name="SecretApprovals.NowColumn" xml:space="preserve">
+    <value>अभी</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Automation" xml:space="preserve">
+    <value>ऑटोमेशन</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Script" xml:space="preserve">
+    <value>स्क्रिप्ट</value>
+  </data>
+  <data name="SecretApprovals.OwnerKind.Widget" xml:space="preserve">
+    <value>विजेट</value>
+  </data>
+  <data name="SecretApprovals.OwnerWithContext" xml:space="preserve">
+    <value>{owner} ({context})</value>
+    <comment>[owner:string] [context:string]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.One" xml:space="preserve">
+    <value>{count} चरण स्वीकृति की प्रतीक्षा में है</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="SecretApprovals.PendingCount.Other" xml:space="preserve">
+    <value>स्वीकृति की प्रतीक्षा में: {count}</value>
+    <comment>[plural] [count:int]</comment>
+  </data>
+  <data name="SecretApprovals.SecretValue" xml:space="preserve">
+    <value>सीक्रेट</value>
+  </data>
+  <data name="SecretApprovals.SettingColumn" xml:space="preserve">
+    <value>सेटिंग</value>
+  </data>
+  <data name="SecretApprovals.Title" xml:space="preserve">
+    <value>स्वीकृतियाँ</value>
+  </data>
+  <data name="SecretApprovals.UnknownBadge" xml:space="preserve">
+    <value>अभी समीक्षा नहीं हुई</value>
   </data>
   <data name="Settings.About.ApacheLicenseLabel" xml:space="preserve">
     <value>Apache License 2.0</value>
@@ -16929,6 +17188,107 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Settings.Logging.MinimumLevelLabel" xml:space="preserve">
     <value>न्यूनतम स्तर</value>
   </data>
+  <data name="Settings.Mcp.ClaudeDesktopAction" xml:space="preserve">
+    <value>Claude Desktop के लिए डाउनलोड करें</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopHint" xml:space="preserve">
+    <value>Macro Deck इंस्टॉल करने के लिए डाउनलोड की गई फ़ाइल को Claude Desktop में खोलें। इस फ़ाइल में यह टोकन है, इसलिए इंस्टॉल करने के बाद इसे हटा दें।</value>
+  </data>
+  <data name="Settings.Mcp.ClaudeDesktopSaveFailed" xml:space="preserve">
+    <value>Claude Desktop एक्सटेंशन सहेजा नहीं जा सका</value>
+  </data>
+  <data name="Settings.Mcp.ClientSelectLabel" xml:space="preserve">
+    <value>AI क्लाइंट</value>
+  </data>
+  <data name="Settings.Mcp.ConfigLabel" xml:space="preserve">
+    <value>क्लाइंट कॉन्फ़िगरेशन</value>
+  </data>
+  <data name="Settings.Mcp.ConnectedSinceLabel" xml:space="preserve">
+    <value>कनेक्ट होने का समय</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.One" xml:space="preserve">
+    <value>{count} कनेक्शन</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionCount.Other" xml:space="preserve">
+    <value>कनेक्शन: {count}</value>
+    <comment>[plural]</comment>
+  </data>
+  <data name="Settings.Mcp.ConnectionsEmpty" xml:space="preserve">
+    <value>कोई AI क्लाइंट कनेक्ट नहीं है।</value>
+  </data>
+  <data name="Settings.Mcp.ConnectionsTitle" xml:space="preserve">
+    <value>कनेक्टेड क्लाइंट</value>
+  </data>
+  <data name="Settings.Mcp.Description" xml:space="preserve">
+    <value>Claude या VS Code जैसे AI असिस्टेंट को Model Context Protocol (MCP) के ज़रिए अपना सेटअप देखने, बनाने और एक्शन चलाने दें। वे आपके सीक्रेट कभी नहीं पढ़ सकते।</value>
+  </data>
+  <data name="Settings.Mcp.EmptyHeading" xml:space="preserve">
+    <value>अभी कोई ऐक्सेस टोकन नहीं है</value>
+  </data>
+  <data name="Settings.Mcp.EmptyMessage" xml:space="preserve">
+    <value>एक टोकन बनाएँ और उसे Macro Deck से जोड़ने के लिए अपने AI क्लाइंट में जोड़ें।</value>
+  </data>
+  <data name="Settings.Mcp.EndpointHint" xml:space="preserve">
+    <value>इस कंप्यूटर पर यह पता इस्तेमाल करें। अपने नेटवर्क के किसी दूसरे कंप्यूटर पर 127.0.0.1 को इस कंप्यूटर के नेटवर्क पते से बदलें। हर कनेक्शन के लिए ऐक्सेस टोकन ज़रूरी है।</value>
+  </data>
+  <data name="Settings.Mcp.EndpointLabel" xml:space="preserve">
+    <value>सर्वर पता</value>
+  </data>
+  <data name="Settings.Mcp.EndpointUnavailable" xml:space="preserve">
+    <value>MCP सर्वर अभी उपलब्ध नहीं है।</value>
+  </data>
+  <data name="Settings.Mcp.Heading" xml:space="preserve">
+    <value>AI क्लाइंट</value>
+  </data>
+  <data name="Settings.Mcp.LoadFailed" xml:space="preserve">
+    <value>AI क्लाइंट सेटिंग लोड नहीं हो सकीं</value>
+  </data>
+  <data name="Settings.Mcp.NeverUsed" xml:space="preserve">
+    <value>कभी नहीं</value>
+  </data>
+  <data name="Settings.Mcp.OtherClients" xml:space="preserve">
+    <value>अन्य क्लाइंट</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAllow" xml:space="preserve">
+    <value>अनुमति दें</value>
+  </data>
+  <data name="Settings.Mcp.PolicyAsksFirst" xml:space="preserve">
+    <value>इनके लिए पहले पूछता है: {actions}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyConfirm" xml:space="preserve">
+    <value>पहले पूछें</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDefault" xml:space="preserve">
+    <value>डिफ़ॉल्ट: {mode}</value>
+  </data>
+  <data name="Settings.Mcp.PolicyDescription" xml:space="preserve">
+    <value>हर प्रदाता के लिए चुनें कि AI क्लाइंट उसके एक्शन सीधे चला सकते हैं, पहले आपसे पूछें या बिल्कुल न चलाएँ। यह AI क्लाइंट द्वारा बनाए गए फ़्लो के एक्शन पर भी लागू होता है।</value>
+  </data>
+  <data name="Settings.Mcp.PolicyOff" xml:space="preserve">
+    <value>बंद</value>
+  </data>
+  <data name="Settings.Mcp.PolicySaveFailed" xml:space="preserve">
+    <value>सेटिंग सहेजी नहीं जा सकी</value>
+  </data>
+  <data name="Settings.Mcp.PolicyTitle" xml:space="preserve">
+    <value>वे एक्शन जिन्हें AI क्लाइंट चला सकते हैं</value>
+  </data>
+  <data name="Settings.Mcp.RefreshAction" xml:space="preserve">
+    <value>रीफ़्रेश करें</value>
+  </data>
+  <data name="Settings.Mcp.RemoveConfirmMessage" xml:space="preserve">
+    <value>{name} हमेशा के लिए हटा दिया जाएगा। यह पहले ही रद्द है, इसलिए कुछ भी इसका इस्तेमाल नहीं कर सकता।</value>
+  </data>
+  <data name="Settings.Mcp.RevokeConfirmMessage" xml:space="preserve">
+    <value>{name} तुरंत काम करना बंद कर देगा और इसका इस्तेमाल करने वाले हर AI क्लाइंट का कनेक्शन टूट जाएगा।</value>
+  </data>
+  <data name="Settings.Mcp.TokensTitle" xml:space="preserve">
+    <value>ऐक्सेस टोकन</value>
+  </data>
+  <data name="Settings.Mcp.UnknownClient" xml:space="preserve">
+    <value>अज्ञात क्लाइंट</value>
+  </data>
   <data name="Settings.Modal.AccountDefaultName" xml:space="preserve">
     <value>Macro Deck खाता</value>
   </data>
@@ -16962,6 +17322,12 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Settings.Network.DiscoveryLabel" xml:space="preserve">
     <value>स्थानीय नेटवर्क पर दिखाएँ</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyDescription" xml:space="preserve">
+    <value>इसे केवल तभी चालू करें जब इस कंप्यूटर पर nginx, Caddy या Traefik जैसा कोई रिवर्स प्रॉक्सी चल रहा हो और कनेक्शन Macro Deck तक पहुँचाता हो। तब Macro Deck हर क्लाइंट के लिए वह पता और HTTPS स्थिति उपयोग करता है जो प्रॉक्सी बताता है।</value>
+  </data>
+  <data name="Settings.Network.ReverseProxyLabel" xml:space="preserve">
+    <value>इस कंप्यूटर पर रिवर्स प्रॉक्सी के पीछे</value>
   </data>
   <data name="Settings.Network.EnvironmentOverrideNote" xml:space="preserve">
     <value>इस लॉन्च के लिए MACRO_DECK_PORT सेट है और पोर्ट ({port}) वही तय करता है। जब तक यह ओवरराइड हटाया नहीं जाता, कॉन्फ़िगर किया गया मान अप्रयुक्त रहता है।</value>
@@ -17282,7 +17648,7 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
     <value>की रिंग सुरक्षित करने के लिए अपनी बैकअप रिकवरी कुंजी निर्यात करें। तब तक वह डिस्क पर पढ़ी जा सकने वाली स्थिति में रहती है।</value>
   </data>
   <data name="Settings.Security.LockScreenDescription" xml:space="preserve">
-    <value>जब यह कंप्यूटर लॉक हो, तब कार्रवाई चलने से रोकता है, चाहे यहाँ आप कुछ भी चुनें।</value>
+    <value>जब यह कंप्यूटर लॉक हो, तब कार्रवाई चलने से रोकता है, चाहे यहाँ आप कुछ भी चुनें। Linux पर Macro Deck यह पता नहीं लगा सकता कि यह कंप्यूटर लॉक है, इसलिए कार्रवाइयाँ चलती रहती हैं और कनेक्ट किए गए क्लाइंट लॉक नहीं होते।</value>
   </data>
   <data name="Settings.Security.LockScreenHeading" xml:space="preserve">
     <value>लॉक स्क्रीन</value>
@@ -17816,6 +18182,9 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Shell.Notifications.Action.OpenLogs" xml:space="preserve">
     <value>लॉग खोलें</value>
   </data>
+  <data name="Shell.Notifications.Action.OpenSecretApprovals" xml:space="preserve">
+    <value>समीक्षा करें</value>
+  </data>
   <data name="Shell.Notifications.Action.OpenTroubleshootingGuide" xml:space="preserve">
     <value>समस्या निवारण</value>
   </data>
@@ -17842,6 +18211,15 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Shell.Notifications.MarkAllRead" xml:space="preserve">
     <value>सभी को पढ़ा हुआ चिह्नित करें</value>
+  </data>
+  <data name="Shell.Notifications.MoreActions" xml:space="preserve">
+    <value>सूचनाओं की और कार्रवाइयाँ</value>
+  </data>
+  <data name="Shell.Notifications.Section.RequiresAttention" xml:space="preserve">
+    <value>ध्यान देना ज़रूरी है</value>
+  </data>
+  <data name="Shell.Notifications.Section.Earlier" xml:space="preserve">
+    <value>पहले की</value>
   </data>
   <data name="Shell.Notifications.Unread" xml:space="preserve">
     <value>अपठित</value>
@@ -17898,6 +18276,25 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   <data name="Shell.Splash.PreparingUpdate" xml:space="preserve">
     <value>अपडेट तैयार हो रहा है…</value>
   </data>
+  <data name="Shell.Splash.StepInstall" xml:space="preserve">
+    <value>अपडेट इंस्टॉल करें</value>
+  </data>
+  <data name="Shell.Splash.StepBackup" xml:space="preserve">
+    <value>अपने डेटा का बैकअप लें</value>
+  </data>
+  <data name="Shell.Splash.CancelUpdate" xml:space="preserve">
+    <value>अपडेट रद्द करें</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackup" xml:space="preserve">
+    <value>बैकअप बन रहा है…</value>
+  </data>
+  <data name="Shell.Splash.CreatingBackupProgress" xml:space="preserve">
+    <value>बैकअप बन रहा है… {percent}%</value>
+    <comment>[percent:int]</comment>
+  </data>
+  <data name="Shell.Splash.InstallingUpdate" xml:space="preserve">
+    <value>अपडेट इंस्टॉल हो रहा है…</value>
+  </data>
   <data name="Shell.Splash.Stopping" xml:space="preserve">
     <value>Macro Deck बंद हो रहा है…</value>
   </data>
@@ -17909,6 +18306,10 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Store.BackingUpEllipsis" xml:space="preserve">
     <value>बैकअप बन रहा है…</value>
+  </data>
+  <data name="Store.BackingUpProgress" xml:space="preserve">
+    <value>बैकअप बन रहा है… {percent}%</value>
+    <comment>[percent:int]</comment>
   </data>
   <data name="Store.Cancelled" xml:space="preserve">
     <value>रद्द किया गया</value>
@@ -18012,19 +18413,19 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Store.EtaMinutesLeft.One" xml:space="preserve">
     <value>लगभग {count} मिनट शेष</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaMinutesLeft.Other" xml:space="preserve">
     <value>लगभग {count} मिनट शेष</value>
-    <comment>[plural][count:int] Remaining download time, a minute or more.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, a minute or more.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.One" xml:space="preserve">
     <value>लगभग {count} सेकंड शेष</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.EtaSecondsLeft.Other" xml:space="preserve">
     <value>लगभग {count} सेकंड शेष</value>
-    <comment>[plural][count:int] Remaining download time, under a minute.</comment>
+    <comment>[plural][count:int] Remaining time of a download or backup, under a minute.</comment>
   </data>
   <data name="Store.Failed" xml:space="preserve">
     <value>विफल</value>
@@ -20737,9 +21138,6 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Widgets.Editor.IconProviderNoIconYet" xml:space="preserve">
     <value>इस क्रिया ने अभी तक कोई आइकन नहीं दिया है।</value>
-  </data>
-  <data name="Widgets.Editor.IconProviderPreviewNote" xml:space="preserve">
-    <value>यह पूर्वावलोकन मैन्युअल रूप से कॉन्फ़िगर किया गया आइकन दिखाता है। बटन स्वयं वही दिखाएगा जो प्रदाता देता है।</value>
   </data>
   <data name="Widgets.Editor.ImportIconFailed" xml:space="preserve">
     <value>छोड़ा गया आइकन आयात नहीं हो सका</value>
@@ -25075,5 +25473,86 @@ Macro Deck वेबसाइट से डाउनलोड करें औ�
   </data>
   <data name="Widgets.Feeds.Sample.Description" xml:space="preserve">
     <value>लेख का एक छोटा सारांश यहाँ दिखाई देता है।</value>
+  </data>
+  <data name="Mcp.Confirmation.AllowedHeading" xml:space="preserve">
+    <value>अनुमति दी गई</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclineAction" xml:space="preserve">
+    <value>अस्वीकार करें</value>
+  </data>
+  <data name="Mcp.Confirmation.DeclinedHeading" xml:space="preserve">
+    <value>अस्वीकार किया गया</value>
+  </data>
+  <data name="Mcp.Confirmation.Hint" xml:space="preserve">
+    <value>इसकी अनुमति तभी दें जब आपने AI क्लाइंट से ठीक यही करने को कहा हो।</value>
+  </data>
+  <data name="Mcp.Confirmation.InvalidMessage" xml:space="preserve">
+    <value>इसका उत्तर पहले ही दिया जा चुका है या यह समाप्त हो गया है। AI क्लाइंट से फिर से प्रयास करने को कहें।</value>
+  </data>
+  <data name="Mcp.Confirmation.Lead" xml:space="preserve">
+    <value>{client} Macro Deck से यह करने का अनुरोध करता है:</value>
+  </data>
+  <data name="Mcp.Confirmation.PageTitle" xml:space="preserve">
+    <value>AI क्लाइंट के अनुरोध की पुष्टि करें</value>
+  </data>
+  <data name="Mcp.Elicitation.Confirm" xml:space="preserve">
+    <value>AI क्लाइंट के आगे बढ़ने से पहले Macro Deck को आपकी पुष्टि चाहिए: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmOnPage" xml:space="preserve">
+    <value>अपने ब्राउज़र में खुलने वाले Macro Deck पेज पर अनुमति दें या अस्वीकार करें: {details}</value>
+  </data>
+  <data name="Mcp.Elicitation.ConfirmTitle" xml:space="preserve">
+    <value>अनुमति दें</value>
+  </data>
+  <data name="Mcp.Elicitation.ProtectedVariable" xml:space="preserve">
+    <value>वेरिएबल {name} बदलना, जिसे सीक्रेट इस्तेमाल करने वाला स्वीकृत ब्लॉक पढ़ता है</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyAction" xml:space="preserve">
+    <value>{action} ({provider})</value>
+  </data>
+  <data name="Mcp.Elicitation.RiskyActionWithValues" xml:space="preserve">
+    <value>{action} ({provider}), मान: {values}</value>
+  </data>
+  <data name="Mcp.Elicitation.SecretValue" xml:space="preserve">
+    <value>एक सीक्रेट</value>
+  </data>
+  <data name="Mcp.Elicitation.SetSecret" xml:space="preserve">
+    <value>अपने ब्राउज़र में खुलने वाले Macro Deck पेज पर सीक्रेट {label} दर्ज करें। मान Macro Deck में ही रहता है।</value>
+  </data>
+  <data name="Mcp.Elicitation.SteeringValue" xml:space="preserve">
+    <value>{name} को सीक्रेट इस्तेमाल करने वाले स्वीकृत ब्लॉक को देना</value>
+  </data>
+  <data name="Mcp.Extension.Description" xml:space="preserve">
+    <value>Claude को इस कंप्यूटर पर आपके Macro Deck सेटअप के साथ काम करने देता है: बटन, फ़ोल्डर और ऑटोमेशन देखना और बनाना, और ऐक्शन चलाना। Claude आपके सीक्रेट कभी नहीं देखता।</value>
+  </data>
+  <data name="Mcp.SecretEntry.EmptyValue" xml:space="preserve">
+    <value>कोई मान दर्ज करें।</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidHeading" xml:space="preserve">
+    <value>यह लिंक अब मान्य नहीं है</value>
+  </data>
+  <data name="Mcp.SecretEntry.InvalidMessage" xml:space="preserve">
+    <value>यह पहले ही इस्तेमाल हो चुका है या इसकी अवधि समाप्त हो गई है। AI क्लाइंट से सीक्रेट फिर से माँगने के लिए कहें।</value>
+  </data>
+  <data name="Mcp.SecretEntry.Lead" xml:space="preserve">
+    <value>{client} Macro Deck से एक सीक्रेट सहेजने के लिए कह रहा है: {label}</value>
+  </data>
+  <data name="Mcp.SecretEntry.PageTitle" xml:space="preserve">
+    <value>सीक्रेट दर्ज करें</value>
+  </data>
+  <data name="Mcp.SecretEntry.Privacy" xml:space="preserve">
+    <value>आप जो टाइप करते हैं, उसे केवल Macro Deck देखता है। {client} को एक्शन में इस्तेमाल करने के लिए केवल एक संदर्भ मिलता है, मान कभी नहीं।</value>
+  </data>
+  <data name="Mcp.SecretEntry.SaveAction" xml:space="preserve">
+    <value>सीक्रेट सहेजें</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedHeading" xml:space="preserve">
+    <value>सीक्रेट सहेजा गया</value>
+  </data>
+  <data name="Mcp.SecretEntry.SavedMessage" xml:space="preserve">
+    <value>आप यह टैब बंद करके {client} पर लौट सकते हैं।</value>
+  </data>
+  <data name="Mcp.SecretEntry.ValueLabel" xml:space="preserve">
+    <value>सीक्रेट</value>
   </data>
 </root>

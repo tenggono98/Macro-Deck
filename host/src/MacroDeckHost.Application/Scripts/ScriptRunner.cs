@@ -1,6 +1,8 @@
+using MacroDeckHost.Application.Mcp;
 using MacroDeck.Sdk.Widgets;
 using MacroDeckHost.Application.Actions;
 using MacroDeckHost.Application.Caching;
+using MacroDeckHost.Application.Secrets.Approvals;
 using MacroDeckHost.Application.Widgets;
 using MacroDeckHost.Domain.Enums;
 using Serilog;
@@ -101,8 +103,10 @@ public sealed class ScriptRunner : IScriptRunner
 					ScopeRefId = script.Id.ToString(),
 					OriginClientId = originClientId,
 					OwnerWidgetId = resolvedOwnerWidgetId,
+					Owner = FlowOwner.Script(script.Id),
 					Origin = ExecutionOrigin.Host,
-					ScriptInputs = binding.Values
+					ScriptInputs = binding.Values,
+					McpTokenId = McpExecutionScope.Current
 				},
 				cancellationToken);
 

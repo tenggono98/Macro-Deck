@@ -237,12 +237,64 @@ internal sealed class JellyfinIntegrationTests
 	public async Task Devices_with_the_same_name_can_be_told_apart()
 	{
 		_context.AddServer("Home", variableKey: "home");
-		_client.Sessions = [Session("a", "Firefox"), Session("b", "Firefox")];
+		_client.Sessions = [Session("a", "Firefox", Movie()), Session("b", "Firefox", Movie())];
 
 		await InitializeAndWaitForDevicesAsync(2);
 
 		Assert.That(_integration.GetInstances().Skip(1).Select(instance => instance.DisplayName),
 			Is.EquivalentTo(new[] { "Home · Firefox (1)", "Home · Firefox (2)" }));
+	}
+
+	[Test]
+	public async Task A_cast_that_returns_under_a_new_id_stays_the_same_player()
+	{
+		var start = DateTimeOffset.UtcNow;
+		_context.AddServer("Home", variableKey: "home");
+		_client.Sessions = [Session("first", "Google Cast", lastActivity: start)];
+		await InitializeAndWaitForDevicesAsync(1);
+		var cast = _integration.GetInstances()[1];
+
+		_client.Sessions =
+		[
+			Session("first", "Google Cast", lastActivity: start),
+			Session("second", "Google Cast", Movie(), lastActivity: start.AddMinutes(1))
+		];
+		await WaitUntilAsync(() => _integration.Runtimes[0].Devices.Find("second") is not null);
+
+		var state = await _integration.GetPlayer(cast.Id)!.GetStateAsync();
+		Assert.Multiple(() =>
+		{
+			Assert.That(_integration.GetInstances().Skip(1).Select(instance => (instance.Id, instance.DisplayName)),
+				Is.EqualTo(new[] { (cast.Id, "Home · Google Cast") }));
+			Assert.That(state.TrackName, Is.EqualTo("Big Buck Bunny"));
+		});
+	}
+
+	[Test]
+	public async Task Same_named_casts_at_different_addresses_stay_two_players()
+	{
+		var start = DateTimeOffset.UtcNow;
+		_context.AddServer("Home", variableKey: "home");
+		_client.Sessions =
+			[Session("kitchen", "Google Cast", lastActivity: start) with { RemoteEndPoint = "10.0.0.11" }];
+		await InitializeAndWaitForDevicesAsync(1);
+		var kitchen = _integration.GetInstances()[1];
+
+		_client.Sessions =
+		[
+			Session("kitchen", "Google Cast", lastActivity: start) with { RemoteEndPoint = "10.0.0.11" },
+			Session("bedroom", "Google Cast", lastActivity: start.AddMinutes(1)) with { RemoteEndPoint = "10.0.0.12" }
+		];
+		await WaitUntilAsync(() => _integration.Runtimes[0].Devices.Find("bedroom") is not null);
+		var players = _integration.GetInstances().Skip(1).Select(instance => instance.Id).ToList();
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_integration.Runtimes[0].Devices.Find("kitchen")?.LocalId,
+				Is.EqualTo(JellyfinDeviceRegistry.LocalIdFor("kitchen")));
+			Assert.That(players, Has.Count.EqualTo(2));
+			Assert.That(players, Does.Contain(kitchen.Id));
+		});
 	}
 
 	[Test]

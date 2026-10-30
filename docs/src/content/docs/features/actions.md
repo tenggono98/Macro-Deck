@@ -136,6 +136,12 @@ public IReadOnlyList<ActionParameter> Parameters { get; } =
 `Url`, `Icon`, `Image`, `KeyboardSequence`, `KeyboardCombo` and `WidgetTarget`. The executor reads
 values by `Name` from `context.Parameters`. The key names in `Hotkey`, `KeyboardCombo` and
 `KeyboardSequence` values are listed under [Keyboard combos](/features/events/#keyboard-combos).
+A secret the user picks for a `Secret` or `Password` parameter, also as a declared child of an `Object`
+or the item of an `Array`, arrives in `context.Parameters` as plaintext; no other parameter ever receives
+a decrypted secret. See [secret resolution in flows](/policies/compatibility/#secret-resolution-in-flows).
+A `KeyboardSequence` value arrives as a JSON string. The host renders each string value inside it as a
+template on its own, so a rendered value, such as event text, only ever becomes the content of that
+string and never adds, removes or changes steps.
 
 A `Color` parameter receives `#rrggbb`. The user can bind it to a
 [Color variable](/features/variables/#color-variables); the host resolves it when the action runs and drops
@@ -154,6 +160,24 @@ for an ordinary action. A role fixes the parameters: `ActionRoles.LaunchApplicat
 `path` and an optional `arguments`. When the user drops an application onto the deck, Macro Deck binds the
 new button to a built-in action with that role; a plugin's action with the role is never chosen, so a
 plugin never receives the dropped path. A Macro Deck release from before `Role` ignores it.
+
+`RiskCategory` says what the action can do outside Macro Deck: `Scripts` (runs code), `Programs` (starts,
+stops or opens programs, runs a command), `Input` (keystrokes, mouse or text), `Network` (requests to an
+address the parameters choose), `Files` (opens, reads or writes files) or `Power` (shuts down, restarts,
+suspends). The default is `None`. Macro Deck asks the user before an AI client connected over
+[MCP](/reference/mcp/) runs an action that declares a category; the user can change that per provider.
+A plugin's actions are asked about whatever they declare, so leaving it unset never lets an AI client run
+your action unasked. Declare the category that fits best, so the user sees why Macro Deck asks.
+
+```csharp
+public sealed class RunCommandAction : IActionDefinition
+{
+	public ActionRiskCategory RiskCategory => ActionRiskCategory.Programs;
+	// ...
+}
+```
+
+A Macro Deck release from before `RiskCategory` ignores it.
 
 `ActionRoles.RunScript` and `ActionRoles.RunRemoteScript` mark an action that runs a Macro Deck script, here
 or on another instance. Such an action takes a required dynamic-choice `scriptId`; an option may carry the

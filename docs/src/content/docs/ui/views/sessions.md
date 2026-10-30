@@ -199,7 +199,8 @@ plugin, or of an integration served the same way, never reach the provider - the
 hardware presses and actions from running then. The client's request is refused with `HOST_LOCKED`, and a
 press, long press, double press, tap, change, adjust, swipe or end of a drag shows the client the same
 "locked" failure a refused action shows. `reveal` is still delivered, so a widget can keep its content up to
-date. You do not need a lock check of your own.
+date. You do not need a lock check of your own. On Linux the host cannot detect the lock and is never in the
+locked state, so these events are always delivered there.
 
 ## The lifecycle every surface shares
 
@@ -230,6 +231,10 @@ protocol descriptor and the session response - read them from there, never hard-
 | Update rate and burst | Per session, not per provider - one busy view cannot starve another. |
 | `maxUiResourceBytes` | Both a `UiResource`'s declared `byteLength` in a plugin's tree and the bytes the host's resource store accepts for one resource a plugin registers. A `byteLength` of `null` is accepted. |
 | `maxUiResourceBytesPerPlugin` / `maxUiResourcesPerPlugin` | The bytes and the number of [resources](/ui/reference/resources/#registering-your-own-images) one plugin may have registered at once. |
+| `maxUiWidgetSessionsPerProvider` | Open `widget` and `preview` sessions of one provider for one viewer (the device that owns them). The same deck on three devices can give your provider up to three times as many sessions. |
+| `maxUiSessionsPerProvider` | Open `folder` and `screensaver` sessions of one provider for one viewer, and, as a separate count, every other surface (`config`, `dialog`, `page`) of one provider across all viewers. |
+
+A session over one of these caps is refused with `TOO_MANY_SESSIONS`. Clients retry a refused `widget`, `folder` or `screensaver` session with backoff, because those slots free up as other sessions of the same viewer close.
 
 ## What a refused update looks like
 

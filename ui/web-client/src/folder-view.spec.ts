@@ -111,6 +111,50 @@ describe('folder view', () => {
     expect(view!.element.querySelector('.wc-folder-view-back')).not.toBeNull();
   });
 
+  describe('when the provider has no session slot free', () => {
+    const opens = () => requests.filter(entry => entry.type === 'OpenFolderUiSession');
+    const busy = { accepted: false, viewId: 'acme.x', code: 'TOO_MANY_SESSIONS' };
+
+    beforeEach(() => jasmine.clock().install());
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('shows the view as loading and asks again once the backoff has passed', async () => {
+      mount().open('f1');
+      opens()[0].resolve(busy);
+      await settle();
+
+      expect(view!.element.textContent).toContain(english('macrodeck.app:Deck.FolderView.Loading'));
+      jasmine.clock().tick(999);
+      expect(opens().length).toBe(1);
+      jasmine.clock().tick(1);
+      expect(opens().length).toBe(2);
+    });
+
+    it('explains the unavailable view after the last attempt', async () => {
+      mount().open('f1');
+      for (const delay of [1000, 2000, 4000, 8000, 16000, 16000]) {
+        opens()[opens().length - 1].resolve(busy);
+        await settle();
+        jasmine.clock().tick(delay);
+      }
+      opens()[opens().length - 1].resolve(busy);
+      await settle();
+
+      expect(opens().length).toBe(7);
+      expect(view!.element.textContent).toContain(english('macrodeck.app:Deck.FolderView.UnavailableHeading'));
+    });
+
+    it('stops asking once the view is closed', async () => {
+      mount().open('f1');
+      opens()[0].resolve(busy);
+      await settle();
+      view!.close();
+      jasmine.clock().tick(60000);
+
+      expect(opens().length).toBe(1);
+    });
+  });
+
   it('draws no back control where there is nowhere to go', async () => {
     canGoBack = false;
     mount().open('f1');
@@ -192,6 +236,27 @@ describe('folder view', () => {
     const events = requests.filter(entry => entry.type === 'SendUiEvent');
     expect(events.length).toBe(1);
     expect((events[0].payload as [{ sessionId: string }])[0].sessionId).toBe('s2');
+  });
+
+  it('keeps drawing its tree while the host resends one a patch could not advance', async () => {
+    const mounted = mount();
+    const content = mounted.element.querySelector('.wc-folder-view-content') as HTMLElement;
+    Object.defineProperty(content, 'clientWidth', { value: 300 });
+    Object.defineProperty(content, 'clientHeight', { value: 200 });
+    mounted.open('f1');
+    await accept(0, 's1');
+    sessions.treeUpdated('s1', 1, buttonTree);
+    mounted.paint();
+
+    sessions.patched('s1', {
+      fromRevision: 5,
+      toRevision: 6,
+      operations: [{ op: 'set-properties', nodeId: 'play', properties: { label: 'x' } }],
+    });
+    mounted.paint();
+
+    expect(mounted.element.querySelector('[data-node-id="play"]') !== null).toBeTrue();
+    expect(opens().length).toBe(1);
   });
 
   it('opens again when the session is lost before it showed anything', async () => {

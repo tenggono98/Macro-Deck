@@ -16,6 +16,7 @@ or shipped but not implemented, is stated as such.
 | Plugin process | Scope `plugin`: the plugin protocol surface, and nothing else | Not sandboxed: it runs with the user's full privileges. Declared permissions are [not enforced](#permissions-declared-not-enforced), except `host:adb`, `host:companion-devices` and `host:desktop-notifications` |
 | Deck clients (web client, companion) | Scope `client`: the viewer-safe endpoints | Plugin endpoints refuse them |
 | LAN callers and browsers | The public listener's API and web client | Every plugin endpoint refuses them |
+| MCP clients (AI assistants) | Scope `mcp`: the tools of [the MCP server](/reference/mcp/), on the public and the loopback listener | Never a secret value; see [MCP clients](#mcp-clients) |
 | Creator Portal and Store | Signing Store plugins after checking the publishing workflow's provenance; publishing the signed registry and its revoked keys | Revocation refuses new installs and updates, not a plugin that is already installed |
 
 ## Network exposure
@@ -178,9 +179,27 @@ var apiKey = await context.Config.GetSecretAsync(entry.Id, "api_key");
 | Key ring protected by the OS | The Data Protection key ring on disk under the host's data root is encrypted under a key in the OS credential store - Windows Credential Manager, macOS keychain, or Secret Service on Linux - so a copy of the data directory does not carry the key that opens it |
 | Honest fallback | With no credential store, and in a portable installation, the key ring stays readable on disk and the host reports that state rather than implying protection |
 | Never log or show | Secrets never belong in logs or user-visible errors: log the failure type, not the value |
+| Decrypted only where declared | A flow's secret reference is decrypted only into a parameter the action declares as `Secret` or `Password`, nested ones included; see [secret resolution in flows](/policies/compatibility/#secret-resolution-in-flows) |
+| Approved blocks only | A flow step that uses a secret runs only in the exact form the user approved. Editing in the app approves it; any other change pauses the step as **waiting for approval** until the user approves it under **Approvals** |
+| Variables are not part of the approval | An approved step that takes its other values from variables, script inputs, event parameters or an earlier step in the same flow uses whatever those hold when it runs |
 
 See [setup flows](/features/setup-flows/#secrets) and
 [ADR 0047](https://github.com/Macro-Deck-App/Macro-Deck/blob/main/engineering/decisions/0047-secrets-backups-and-restore.md).
+
+## MCP clients
+
+An AI client connected to [the MCP server](/reference/mcp/) is treated as an untrusted writer, not as the
+user:
+
+- Its token opens only `/mcp`, and never an admin, client or plugin endpoint. `/mcp` is also served on
+  the public listener so clients on other computers in the network can connect; the token is the only
+  credential there, sent over plain HTTP. Browser pages are refused by the `Origin` checks.
+- No tool returns a secret value. Secrets appear as `{"$secret":"<id>"}` references, and a new secret is
+  typed by the user into a one-time Macro Deck page, never into the client.
+- An action that asks first is confirmed by the user in the client's own dialog or, for a client that can
+  only open links, on a one-time Macro Deck confirmation page with the same `Origin`, one-time and
+  expiry rules as the secret page.
+- Revoking the token in **Settings > AI clients** cuts off its open requests and sessions immediately.
 
 ## Signing and install trust
 
@@ -250,6 +269,33 @@ The host resolves a package to exactly one verdict:
 | The Store or registry, Developer Mode off | No |
 | An update to a plugin installed as `Trusted` | No, regardless of consent |
 | An update Macro Deck found for you | Only ever reported to you, never installed unsigned on your behalf |
+
+**A plugin id stays with the publisher it was first admitted from.** Once a version of a plugin was admitted
+as `Trusted`, a later package for the same plugin id - a higher version, an older one, or a forced reinstall
+of the same version - must be signed under a certificate issued to the same subject: the certificate's
+`subject.kind` and `subject.id`, the publisher the Creator Portal verified. The certificate id is not
+compared, so a publisher whose certificate is rotated or re-issued, or whose certificate comes from a new
+issuer, keeps updating. A package that verifies as `Trusted` but was issued to another subject is refused
+with `SignerMismatch` (`signer_mismatch` over HTTP), and the installed version stays active.
+
+| Situation | Outcome |
+| --- | --- |
+| A file you select or upload, or a URL, signed by another publisher | Refused, with or without consent |
+| A Store install, update or automatic update signed by another publisher | Refused; the Store marks the operation failed and does not offer a retry |
+| A test build signed by another publisher | Refused. Real test builds are unsigned and are not compared |
+| An unsigned update over an unsigned plugin | Unchanged: there is no publisher to compare, so the per-install confirmation decides |
+| The first signed version over unsigned ones | Installed, and its publisher is compared from then on |
+
+The comparison uses the most recently admitted trusted version of the plugin id. Its record is kept even
+after its version folder is pruned, so pruning never lowers the trust tier either: an unsigned package is
+still refused as a downgrade. A version admitted before Macro Deck recorded the subject is matched by its
+exact certificate id instead, so a rotated certificate over such a version is refused until the plugin is
+reinstalled. A Creator Portal [transfer](/creator-portal/projects/#transfer-a-project) of a signed plugin
+changes the subject too, so installed copies refuse the new publisher's releases. Uninstalling clears the
+comparison; unless you also delete the plugin's
+stored data, a package from another publisher installed afterwards receives that data. Verifiers read the
+subject from `PackageVerifyResult.Subject` in `MacroDeck.Signing`. See
+[ADR 0112](https://github.com/Macro-Deck-App/Macro-Deck/blob/main/engineering/decisions/0112-a-trusted-plugin-id-stays-with-its-publisher.md).
 
 Icon packs and profile templates have no signature of their own and are unaffected. A signature that is
 *present but does not verify* is a failure, not a weaker kind of unsigned: no confirmation installs it. An
@@ -357,7 +403,9 @@ push, pull, install, uninstall, connect) are refused for plugins and built-in in
 operations (keys, taps, swipes, text, starting and stopping an app, opening a URI, reboot, screenshot, screen
 status) still run, so a deck button bound to one keeps working; each is a fixed command whose arguments the
 host validates and quotes. A plugin allowed to use ADB can therefore, for example, type text or capture the
-screen of an attached device while the computer is locked.
+screen of an attached device while the computer is locked. On Linux the host cannot detect the lock and is
+never in the locked state, so none of these operations are refused there and deck actions keep running on a
+locked computer.
 
 <a id="companion-devices"></a>
 

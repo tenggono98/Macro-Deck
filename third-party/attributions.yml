@@ -74,14 +74,18 @@ assets:
       - ui/runtime/styles/icons/battery.svg
       - ui/runtime/styles/icons/bell.svg
       - ui/runtime/styles/icons/blend.svg
+      - ui/runtime/styles/icons/bot.svg
       - ui/runtime/styles/icons/braces-x.svg
       - ui/runtime/styles/icons/bug.svg
       - ui/runtime/styles/icons/chart.svg
       - ui/runtime/styles/icons/check.svg
+      - ui/runtime/styles/icons/check-check.svg
       - ui/runtime/styles/icons/chevron-down.svg
       - ui/runtime/styles/icons/chevron-left.svg
       - ui/runtime/styles/icons/chevron-right.svg
       - ui/runtime/styles/icons/chevron-up.svg
+      - ui/runtime/styles/icons/circle-check.svg
+      - ui/runtime/styles/icons/circle-x.svg
       - ui/runtime/styles/icons/clipboard.svg
       - ui/runtime/styles/icons/clock-type.svg
       - ui/runtime/styles/icons/code.svg
@@ -140,6 +144,7 @@ assets:
       - ui/runtime/styles/icons/search.svg
       - ui/runtime/styles/icons/settings.svg
       - ui/runtime/styles/icons/share-2.svg
+      - ui/runtime/styles/icons/shield-check.svg
       - ui/runtime/styles/icons/sidebar.svg
       - ui/runtime/styles/icons/sliders.svg
       - ui/runtime/styles/icons/sparkles.svg

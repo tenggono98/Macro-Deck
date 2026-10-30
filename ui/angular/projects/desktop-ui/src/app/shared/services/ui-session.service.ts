@@ -1,7 +1,7 @@
 import { Injectable, Signal, inject, signal, untracked } from '@angular/core';
 import { Subscription } from 'rxjs';
 
-import { ApiService } from '../transport';
+import { ApiService, type ConnectionState } from '../transport';
 import {
   applyUiPatch,
   AppStrings,
@@ -104,6 +104,13 @@ class NullUiSessionHandle implements UiSessionHandle {
 }
 
 const MAX_REOPENS_WITHOUT_A_TREE = 3;
+const MAX_BUSY_RETRIES = 6;
+
+const TOO_MANY_SESSIONS = 'TOO_MANY_SESSIONS';
+
+const SESSION_CLOSED = 'SESSION_CLOSED';
+const SESSION_FORBIDDEN = 'SESSION_FORBIDDEN';
+const SESSION_NOT_FOUND = 'SESSION_NOT_FOUND';
 
 let nextFlushId = 0;
 
@@ -126,6 +133,11 @@ class LiveUiSessionHandle implements UiSessionHandle {
   private readonly pendingFlushes = new Map<string, () => void>();
   private uploadsInFlight = 0;
   private heldEvents: UiNodeEvent[] = [];
+  private starts = 0;
+  private busyRetries = 0;
+  private busyRetry: ReturnType<typeof setTimeout> | null = null;
+  private recovering: Promise<void> | null = null;
+  private refusedEvents: UiNodeEvent[] = [];
 
   constructor(
     private readonly api: ApiService,
@@ -150,6 +162,14 @@ class LiveUiSessionHandle implements UiSessionHandle {
     this.subscription.add(this.api.onUiSessionParameterValuesReported()
       .subscribe(event => this.onParameterValuesReportedEvent(event)));
     this.subscription.add(this.api.onUiSessionFlushed().subscribe(event => this.onFlushed(event)));
+    let connection: ConnectionState | null = null;
+    this.subscription.add(this.api.connectionState$.subscribe(state => {
+      const previous = connection;
+      connection = state;
+      if (previous === null || previous === 'connected' || state !== 'connected') return;
+      this.reopens = 0;
+      void this.recover();
+    }));
 
     void this.start();
   }
@@ -193,19 +213,60 @@ class LiveUiSessionHandle implements UiSessionHandle {
   }
 
   private dispatch(event: UiNodeEvent): void {
-    if (this.closed || !this.sessionId) return;
+    const sessionId = this.sessionId;
+    if (this.closed || !sessionId) return;
     void this.api.sendUiEvent({
-      sessionId: this.sessionId,
+      sessionId,
       nodeId: event.nodeId,
       name: event.name,
       data: event.data,
       revision: this.revision(),
+    }).then(response => {
+      if (!response || response.accepted || this.closed || this.sessionId !== sessionId) return;
+      if (response.code === SESSION_CLOSED) {
+        this.onFaulted({ code: response.code, message: response.message });
+      } else if (response.code === SESSION_FORBIDDEN || response.code === SESSION_NOT_FOUND) {
+        this.refusedEvents.push(event);
+        void this.recover();
+      }
     });
+  }
+
+  // The host drains a dropped connection's sessions for a while and lets the same device re-attach them.
+  private recover(): Promise<void> {
+    this.recovering ??= this.reattachOrReopen().finally(() => {
+      this.recovering = null;
+    });
+    return this.recovering;
+  }
+
+  private async reattachOrReopen(): Promise<void> {
+    const sessionId = this.sessionId;
+    if (this.closed) return;
+
+    let refusal: UiSessionRejection = {};
+    if (sessionId && this.fault() === null) {
+      const attached = await this.api.attachUiSession(sessionId);
+      if (this.closed || this.sessionId !== sessionId) return;
+      if (attached?.accepted) {
+        this.revision.set(attached.revision);
+        const refused = this.refusedEvents;
+        this.refusedEvents = [];
+        for (const event of refused) this.send(event);
+        return;
+      }
+      refusal = { code: attached?.code, message: attached?.message };
+      void this.api.closeUiSession(sessionId);
+    }
+
+    this.refusedEvents = [];
+    this.reopen(refusal);
   }
 
   close(): void {
     if (this.closed) return;
     this.closed = true;
+    this.cancelBusyRetry();
     this.subscription.unsubscribe();
     this.reportListeners.clear();
     this.settleFlushes();
@@ -257,18 +318,49 @@ class LiveUiSessionHandle implements UiSessionHandle {
   }
 
   private async start(): Promise<void> {
+    this.cancelBusyRetry();
+    const start = ++this.starts;
     const opened = await this.openSession();
-    if (this.closed) return;
+    if (this.closed || start !== this.starts) {
+      // A reconnect can start a reopen while an earlier open is still in flight.
+      if (opened?.accepted) void this.api.closeUiSession(opened.sessionId);
+      return;
+    }
 
     if (!opened?.accepted) {
+      if (opened?.code === TOO_MANY_SESSIONS && this.retriesWhenBusy() && this.busyRetries < MAX_BUSY_RETRIES) {
+        this.retryWhenFree();
+        return;
+      }
+      this.busyRetries = 0;
       this.rejection.set({ code: opened?.code, message: opened?.message });
       return;
     }
 
+    this.busyRetries = 0;
     this.rejection.set(null);
     this.sessionId = opened.sessionId;
     this.generation.update(value => value + 1);
     await this.attach(true);
+  }
+
+  private retriesWhenBusy(): boolean {
+    return this.request.kind === 'widget' || this.request.kind === 'folder';
+  }
+
+  private retryWhenFree(): void {
+    const delay = Math.min(1000 * 2 ** this.busyRetries, 16000);
+    this.busyRetries++;
+    this.busyRetry = setTimeout(() => {
+      this.busyRetry = null;
+      if (!this.closed) void this.start();
+    }, delay);
+  }
+
+  private cancelBusyRetry(): void {
+    if (this.busyRetry === null) return;
+    clearTimeout(this.busyRetry);
+    this.busyRetry = null;
   }
 
   private openSession(): Promise<{ accepted: boolean; sessionId: string; code?: string; message?: string } | null> {

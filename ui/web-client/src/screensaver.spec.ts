@@ -9,6 +9,7 @@ describe('screensaver', () => {
   let saver: ScreenSaver | null;
   let interactive: boolean;
   let accept: boolean;
+  let refusalCode: string;
 
   const catalog = new LocalizationCatalog();
   const host: UiRenderHost = {
@@ -33,6 +34,7 @@ describe('screensaver', () => {
     dismissed = 0;
     interactive = false;
     accept = true;
+    refusalCode = 'PROVIDER_UNAVAILABLE';
     sessions = new UiSessionStore();
     connection = {
       request: (type: string, payload: unknown) => new Promise((resolve, reject) => {
@@ -41,7 +43,7 @@ describe('screensaver', () => {
         if (type === 'OpenScreenSaverUiSession') {
           resolve(accept
             ? { accepted: true, sessionId: `s${requests.length}`, screenSaverId: 'x::clock', interactive }
-            : { accepted: false, sessionId: '', code: 'PROVIDER_UNAVAILABLE' });
+            : { accepted: false, sessionId: '', code: refusalCode });
         } else {
           resolve(undefined);
         }
@@ -73,6 +75,55 @@ describe('screensaver', () => {
     target.dispatchEvent(event);
     return event;
   };
+
+  describe('when the provider has no session slot free', () => {
+    const opens = () => sent('OpenScreenSaverUiSession').length;
+
+    beforeEach(() => {
+      accept = false;
+      refusalCode = 'TOO_MANY_SESSIONS';
+      jasmine.clock().install();
+    });
+
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('keeps showing and asks again once the backoff has passed', async () => {
+      mount().show();
+      await settle();
+      jasmine.clock().tick(999);
+      expect(opens()).toBe(1);
+
+      accept = true;
+      jasmine.clock().tick(1);
+      await settle();
+
+      expect(opens()).toBe(2);
+      expect(saver!.isShowing()).toBeTrue();
+      expect(dismissed).toBe(0);
+    });
+
+    it('gives the deck back after the last attempt', async () => {
+      mount().show();
+      await settle();
+      for (const delay of [1000, 2000, 4000, 8000, 16000, 16000]) {
+        jasmine.clock().tick(delay);
+        await settle();
+      }
+
+      expect(opens()).toBe(7);
+      expect(saver!.isShowing()).toBeFalse();
+      expect(dismissed).toBe(1);
+    });
+
+    it('stops asking once it is hidden', async () => {
+      mount().show();
+      await settle();
+      saver!.hide();
+      jasmine.clock().tick(60000);
+
+      expect(opens()).toBe(1);
+    });
+  });
 
   it('writes a clock with the leading zero the host states', async () => {
     saver = new ScreenSaver({
@@ -209,6 +260,24 @@ describe('screensaver', () => {
     expect(sent('OpenScreenSaverUiSession').length).toBe(3);
     expect(view.isShowing()).toBeTrue();
     expect(dismissed).toBe(0);
+  });
+
+  it('stays on its session and keeps drawing when a patch cannot apply', async () => {
+    const view = mount();
+    view.show();
+    await settle();
+    sessions.treeUpdated(sessionId(), 1, clockTree);
+
+    sessions.patched(sessionId(), {
+      fromRevision: 5,
+      toRevision: 6,
+      operations: [{ op: 'set-properties', nodeId: 'root', properties: { text: '12:01' } }],
+    });
+    await settle();
+
+    expect(sent('OpenScreenSaverUiSession').length).toBe(1);
+    expect(sent('CloseUiSession').length).toBe(0);
+    expect(view.element.textContent).toContain('12:00');
   });
 
   it('hides rather than looping when it loses its session again before anything was shown', async () => {

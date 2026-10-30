@@ -9,6 +9,7 @@ using MacroDeck.Plugin.Analyzers;
 using MacroDeck.Plugin.Protocol.Errors;
 using MacroDeck.Plugin.Protocol.Handshake;
 using MacroDeck.Plugin.Protocol.Versioning;
+using MacroDeckHost.Application.Integrations.ConfigFlow;
 using MacroDeckHost.Application.Paths;
 using MacroDeckHost.Application.Persistence.Repositories;
 using MacroDeckHost.Application.Plugins;
@@ -359,6 +360,13 @@ public sealed class PluginInstaller : IPluginInstaller
 			return null;
 		}
 
+		if (outcome.Cancelled)
+		{
+			return PluginInstallResult.Fail(PluginInstallError.Cancelled,
+				$"The backup before updating '{pluginId}' was cancelled, so the plugin was not updated.",
+				pluginId);
+		}
+
 		return PluginInstallResult.Fail(PluginInstallError.Failed,
 			$"The backup before updating '{pluginId}' failed, so the plugin was not updated. "
 			+ (outcome.Reason ?? "The backup could not be created."),
@@ -413,7 +421,9 @@ public sealed class PluginInstaller : IPluginInstaller
 
 			var warnings = CollectWarnings(manifest, trust);
 
-			var result = await ActivateAndValidate(pluginId,
+			var hold = await _supervisor.HoldLaunches(pluginId, cancellationToken);
+			var result = await ActivateAndValidate(hold,
+				pluginId,
 				version,
 				warnings,
 				HasEntrypointForThisHost(manifest),
@@ -492,7 +502,29 @@ public sealed class PluginInstaller : IPluginInstaller
 				}
 			}
 
+			// The first stop aborts a launch in flight before it spawns; the second, under the hold, waits for
+			// a process that was already published so nothing runs from the directory being deleted.
 			await _supervisor.Stop(pluginId, PluginStopReason.UserRequested, cancellationToken);
+			await using var hold = await _supervisor.HoldLaunches(pluginId, cancellationToken);
+			var stopped = await _supervisor.Stop(pluginId, PluginStopReason.UserRequested, cancellationToken);
+			cancellationToken.ThrowIfCancellationRequested();
+			if (stopped.Error == PluginSupervisorError.Failed)
+			{
+				return PluginInstallResult.Fail(PluginInstallError.Failed,
+					await ActiveLocalization.Resolve(_scopeFactory, AppStrings.Errors.Plugins.UninstallStopFailed()),
+					pluginId);
+			}
+
+			// Before anything irreversible: a failure here leaves the plugin installed and listed, so the
+			// user can retry from the same dialog.
+			var dataDirectory = PluginInstallPaths.DataDirectory(_paths.PluginsDirectory, pluginId);
+			if (!request.KeepData && !TryDeleteDirectoryWithRetries(dataDirectory))
+			{
+				return PluginInstallResult.Fail(PluginInstallError.Failed,
+					await ActiveLocalization.Resolve(_scopeFactory,
+						AppStrings.Errors.Plugins.UninstallDataNotDeleted()),
+					pluginId);
+			}
 
 			if (!TryDeleteDirectoryWithRetries(versionsDirectory))
 			{
@@ -523,6 +555,11 @@ public sealed class PluginInstaller : IPluginInstaller
 
 			await _integrationRegistrar.ForgetAsync(pluginId, cancellationToken);
 
+			if (!request.KeepData)
+			{
+				await DeleteStoredConfiguration(pluginId, cancellationToken);
+			}
+
 			_adbConsent?.Dismiss(pluginId);
 			_companionConsent?.Dismiss(pluginId);
 
@@ -543,6 +580,19 @@ public sealed class PluginInstaller : IPluginInstaller
 
 		await SyncIconPacksAfterChange(pluginId, uninstalled);
 		return uninstalled;
+	}
+
+	private async Task DeleteStoredConfiguration(string pluginId, CancellationToken cancellationToken)
+	{
+		using var scope = _scopeFactory.CreateScope();
+		var configStore = scope.ServiceProvider.GetRequiredService<IIntegrationConfigStore>();
+		foreach (var entry in await configStore.List(pluginId))
+		{
+			await configStore.Delete(entry.Id);
+		}
+
+		await scope.ServiceProvider.GetRequiredService<IRemotePluginSnapshotStore>()
+			.RemoveAsync(pluginId, cancellationToken);
 	}
 
 	// Never under the plugin gate: the sync may wait for startup readiness and must not hold installs up.
@@ -689,18 +739,22 @@ public sealed class PluginInstaller : IPluginInstaller
 			: PluginTrustVerdict.Unsigned;
 	}
 
-	private async Task UpsertTrustRecord(
-		string pluginId,
-		string version,
-		PluginTrustVerdict verdict,
-		string? certificateId)
+	private async Task<bool> ChangesSigner(string pluginId, PluginTrustResult incoming)
+	{
+		using var scope = _scopeFactory.CreateScope();
+		var repository = scope.ServiceProvider.GetRequiredService<IPluginTrustRecordRepository>();
+		return PluginTrustPolicy.ChangesSigner(await repository.GetForPlugin(pluginId), incoming);
+	}
+
+	private async Task UpsertTrustRecord(string pluginId, string version, PluginTrustResult trust)
 	{
 		using var scope = _scopeFactory.CreateScope();
 		var repository = scope.ServiceProvider.GetRequiredService<IPluginTrustRecordRepository>();
 		await repository.Upsert(pluginId,
 			version,
-			PluginTrustRecordVerdicts.From(verdict),
-			certificateId,
+			PluginTrustRecordVerdicts.From(trust.Verdict),
+			trust.CertificateId,
+			trust.Signer,
 			_timeProvider.GetUtcNow().UtcDateTime);
 	}
 
@@ -709,7 +763,10 @@ public sealed class PluginInstaller : IPluginInstaller
 		using var scope = _scopeFactory.CreateScope();
 		var repository = scope.ServiceProvider.GetRequiredService<IPluginTrustRecordRepository>();
 		return await repository.GetVersion(pluginId, version) is { } record
-			? new PriorTrustRecord(record.AdmittedVerdict, record.CertificateId, record.InstalledAt)
+			? new PriorTrustRecord(record.AdmittedVerdict,
+				record.CertificateId,
+				record.SignerKind is { } kind && record.SignerId is { } id ? new PluginSignerIdentity(kind, id) : null,
+				record.InstalledAt)
 			: null;
 	}
 
@@ -727,6 +784,7 @@ public sealed class PluginInstaller : IPluginInstaller
 			undo.Version,
 			prior.AdmittedVerdict,
 			prior.CertificateId,
+			prior.Signer,
 			prior.InstalledAt);
 	}
 
@@ -744,11 +802,16 @@ public sealed class PluginInstaller : IPluginInstaller
 		await repository.DeleteForPlugin(pluginId);
 	}
 
-	private async Task DeleteTrustRecordVersion(string pluginId, string version)
+	// A Trusted record outlives its pruned directory: it carries the tier and the signer pin for the whole id.
+	private async Task DeleteUntrustedRecordVersion(string pluginId, string version)
 	{
 		using var scope = _scopeFactory.CreateScope();
 		var repository = scope.ServiceProvider.GetRequiredService<IPluginTrustRecordRepository>();
-		await repository.DeleteVersion(pluginId, version);
+		var record = await repository.GetVersion(pluginId, version);
+		if (PluginTrustRecordVerdicts.Parse(record?.AdmittedVerdict) != PluginTrustVerdict.Trusted)
+		{
+			await repository.DeleteVersion(pluginId, version);
+		}
 	}
 
 	private async Task<PluginTrustGateDecision> EvaluateTrustGate(
@@ -778,7 +841,7 @@ public sealed class PluginInstaller : IPluginInstaller
 	{
 		return action == PluginTrustGateAction.None
 			? Task.CompletedTask
-			: UpsertTrustRecord(pluginId, version, onDisk.Verdict, onDisk.CertificateId);
+			: UpsertTrustRecord(pluginId, version, onDisk);
 	}
 
 	// A record admitted as Trusted but refused by the gate (e.g. the certificate id no longer matches, or
@@ -881,6 +944,20 @@ public sealed class PluginInstaller : IPluginInstaller
 				};
 		}
 
+		if (await ChangesSigner(manifest.Id, trust))
+		{
+			var message = await ActiveLocalization.Resolve(_scopeFactory, AppStrings.Errors.Plugins.SignerMismatch());
+			return PluginInstallResult.Fail(PluginInstallError.SignerMismatch,
+					message,
+					manifest.Id,
+					manifest.Version,
+					previousVersion)
+				with
+				{
+					Publisher = manifest.Publisher, Signature = trust
+				};
+		}
+
 		// Written as an equality, never as a negation of "is trusted": widening this to admit any verdict
 		// that merely isn't a hard failure would silently reopen the unsigned-consent path to a signature
 		// that actively failed verification.
@@ -912,6 +989,10 @@ public sealed class PluginInstaller : IPluginInstaller
 			await GetTrustRecord(manifest.Id, manifest.Version));
 		var trustWritten = false;
 		var handedOver = false;
+
+		// Held from before the in-place move until ActivateAndValidate has started the new version, so the
+		// reconcile loop cannot relaunch the plugin while its files and current.json are being swapped.
+		var hold = await _supervisor.HoldLaunches(manifest.Id, cancellationToken);
 
 		IReadOnlyList<PluginInstallWarning> warnings;
 		bool canStart;
@@ -953,7 +1034,7 @@ public sealed class PluginInstaller : IPluginInstaller
 			// Before activation, not after: ActivateAndValidate starts the plugin, and the supervisor refuses
 			// to launch an installed version that has no trust record. Recording it afterwards would make the
 			// launch this method performs fail its own gate.
-			await UpsertTrustRecord(manifest.Id, manifest.Version, trust.Verdict, trust.CertificateId);
+			await UpsertTrustRecord(manifest.Id, manifest.Version, trust);
 			trustWritten = true;
 
 			// Health-gating a plugin this machine cannot launch would fail every time and roll back a
@@ -966,18 +1047,30 @@ public sealed class PluginInstaller : IPluginInstaller
 		}
 		finally
 		{
-			if (replacesInPlace && !handedOver)
+			if (!handedOver)
 			{
-				await RestoreReplacedVersion(manifest.Id,
-					versionDirectory,
-					displacedDirectory,
-					trustWritten ? trustUndo : null,
-					wasRunning);
+				try
+				{
+					if (replacesInPlace)
+					{
+						await RestoreReplacedVersion(hold,
+							manifest.Id,
+							versionDirectory,
+							displacedDirectory,
+							trustWritten ? trustUndo : null,
+							wasRunning);
+					}
+				}
+				finally
+				{
+					await hold.DisposeAsync();
+				}
 			}
 		}
 
 		var rollback = new PluginRollbackPlan(displacedDirectory, true, trustUndo);
-		var result = await ActivateAndValidate(manifest.Id,
+		var result = await ActivateAndValidate(hold,
+			manifest.Id,
 			manifest.Version,
 			warnings,
 			canStart,
@@ -1023,7 +1116,10 @@ public sealed class PluginInstaller : IPluginInstaller
 		};
 	}
 
+	// Takes ownership of the hold: it is released once the new version has been started, so the reconcile
+	// loop can drive its health check and startup retry, and a fresh hold is taken for a rollback.
 	private async Task<PluginInstallResult> ActivateAndValidate(
+		IPluginLaunchHold hold,
 		string pluginId,
 		string version,
 		IReadOnlyList<PluginInstallWarning> warnings,
@@ -1032,70 +1128,87 @@ public sealed class PluginInstaller : IPluginInstaller
 		bool? runningBeforeInstall,
 		CancellationToken cancellationToken)
 	{
-		var previousVersion = ActiveVersionOf(pluginId);
-		var wasRunning = runningBeforeInstall ?? IsRunning(pluginId);
+		string? previousVersion;
+		bool wasRunning;
+		PluginSupervisorResult start;
 
-		await _supervisor.Stop(pluginId, PluginStopReason.Update, cancellationToken);
-
-		try
+		await using (hold)
 		{
-			WriteCurrentVersion(pluginId, version);
-			_catalog.Invalidate();
+			previousVersion = ActiveVersionOf(pluginId);
+			wasRunning = runningBeforeInstall ?? IsRunning(pluginId);
+
+			await _supervisor.Stop(pluginId, PluginStopReason.Update, cancellationToken);
+
+			try
+			{
+				WriteCurrentVersion(pluginId, version);
+				_catalog.Invalidate();
+			}
+			catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+			{
+				var undone = await RollBack(hold,
+					pluginId,
+					version,
+					previousVersion,
+					wasRunning,
+					rollback,
+					cancellationToken);
+
+				return PluginInstallResult.Fail(PluginInstallError.ActivationFailed,
+					ex.Message,
+					pluginId,
+					version,
+					previousVersion,
+					undone,
+					warnings);
+			}
+
+			PluginInstallerLog.Activated(_logger, pluginId, version, previousVersion ?? "nothing");
+
+			try
+			{
+				await RevokeRegistrationRow(pluginId);
+				await _sessionRegistry.TerminateForPlugin(pluginId,
+					ProtocolCloseCodes.RegistrationRejected,
+					"The plugin id is now claimed by an installed plugin.");
+			}
+			catch (Exception ex)
+			{
+				PluginInstallerLog.IdClaimFailed(_logger, pluginId, ex);
+			}
+
+			// A takeover can still begin while this activation runs. Ending it after the revoke keeps it from
+			// outliving its credential and lets the start below run.
+			_takeovers.Finish(pluginId);
+
+			var blocked = warnings.Any(warning => warning.Severity == PluginInstallWarningSeverity.Blocking);
+			if (!startAfterActivation || blocked)
+			{
+				return PluginInstallResult.Ok(pluginId, version, previousVersion, true, warnings);
+			}
+
+			start = await hold.Start(cancellationToken);
 		}
-		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-		{
-			var undone = await RollBack(pluginId,
-				version,
-				previousVersion,
-				wasRunning,
-				rollback,
-				cancellationToken);
 
-			return PluginInstallResult.Fail(PluginInstallError.ActivationFailed,
-				ex.Message,
-				pluginId,
-				version,
-				previousVersion,
-				undone,
-				warnings);
-		}
-
-		PluginInstallerLog.Activated(_logger, pluginId, version, previousVersion ?? "nothing");
-
-		try
-		{
-			await RevokeRegistrationRow(pluginId);
-			await _sessionRegistry.TerminateForPlugin(pluginId,
-				ProtocolCloseCodes.RegistrationRejected,
-				"The plugin id is now claimed by an installed plugin.");
-		}
-		catch (Exception ex)
-		{
-			PluginInstallerLog.IdClaimFailed(_logger, pluginId, ex);
-		}
-
-		// A takeover can still begin while this activation runs. Ending it after the revoke keeps it from
-		// outliving its credential and lets the start below run.
-		_takeovers.Finish(pluginId);
-
-		var blocked = warnings.Any(warning => warning.Severity == PluginInstallWarningSeverity.Blocking);
-		if (!startAfterActivation || blocked)
-		{
-			return PluginInstallResult.Ok(pluginId, version, previousVersion, true, warnings);
-		}
-
-		if (await ReachesHealthy(pluginId, cancellationToken))
+		if (await ReachesHealthy(pluginId, version, start, cancellationToken))
 		{
 			return PluginInstallResult.Ok(pluginId, version, previousVersion, true, warnings);
 		}
 
 		PluginInstallerLog.HealthValidationFailed(_logger, pluginId, version);
-		var rolledBack = await RollBack(pluginId,
-			version,
-			previousVersion,
-			wasRunning,
-			rollback,
-			cancellationToken);
+
+		// The wait for the hold ignores the caller's token: a cancelled update must still be rolled back.
+		bool rolledBack;
+		await using (var rollbackHold = await _supervisor.HoldLaunches(pluginId, CancellationToken.None))
+		{
+			rolledBack = await RollBack(rollbackHold,
+				pluginId,
+				version,
+				previousVersion,
+				wasRunning,
+				rollback,
+				cancellationToken);
+		}
 
 		return PluginInstallResult.Fail(PluginInstallError.HealthValidationFailed,
 			$"Version {version} did not become healthy.",
@@ -1107,6 +1220,7 @@ public sealed class PluginInstaller : IPluginInstaller
 	}
 
 	private async Task<bool> RollBack(
+		IPluginLaunchHold hold,
 		string pluginId,
 		string failedVersion,
 		string? previousVersion,
@@ -1151,7 +1265,7 @@ public sealed class PluginInstaller : IPluginInstaller
 
 			if (restartPrevious && previousVersion is not null && Directory.Exists(previousDirectory))
 			{
-				await _supervisor.Start(pluginId, cancellationToken);
+				await hold.Start(cancellationToken);
 			}
 
 			PluginInstallerLog.RolledBack(_logger, pluginId, previousVersion ?? "no active version");
@@ -1177,9 +1291,11 @@ public sealed class PluginInstaller : IPluginInstaller
 	private readonly record struct PriorTrustRecord(
 		string AdmittedVerdict,
 		string? CertificateId,
+		PluginSignerIdentity? Signer,
 		DateTime InstalledAt);
 
 	private async Task RestoreReplacedVersion(
+		IPluginLaunchHold hold,
 		string pluginId,
 		string versionDirectory,
 		string displacedDirectory,
@@ -1196,7 +1312,7 @@ public sealed class PluginInstaller : IPluginInstaller
 
 		if (restart)
 		{
-			await _supervisor.Start(pluginId, CancellationToken.None);
+			await hold.Start(CancellationToken.None);
 		}
 	}
 
@@ -1218,10 +1334,13 @@ public sealed class PluginInstaller : IPluginInstaller
 		}
 	}
 
-	private async Task<bool> ReachesHealthy(string pluginId, CancellationToken cancellationToken)
+	private async Task<bool> ReachesHealthy(
+		string pluginId,
+		string version,
+		PluginSupervisorResult start,
+		CancellationToken cancellationToken)
 	{
-		var start = await _supervisor.Start(pluginId, cancellationToken);
-		if (!start.Success)
+		if (!start.Success && !(start.Error == PluginSupervisorError.AlreadyRunning && IsRunning(pluginId, version)))
 		{
 			return false;
 		}
@@ -1614,8 +1733,8 @@ public sealed class PluginInstaller : IPluginInstaller
 	{
 		for (var attempt = 1;; attempt++)
 		{
-			// Windows refuses to move the directory a running plugin works in, and the reconcile loop can
-			// relaunch a plugin stopped for an update, so it is stopped again before every attempt.
+			// Windows refuses to move the directory a running plugin works in. The caller's launch hold keeps
+			// the reconcile loop from relaunching it, the stop is repeated so a retry never moves a live one.
 			await _supervisor.Stop(pluginId, PluginStopReason.Update, cancellationToken);
 
 			try
@@ -1692,7 +1811,7 @@ public sealed class PluginInstaller : IPluginInstaller
 				PluginInstallPaths.VersionDirectory(_paths.PluginsDirectory, pluginId, version)))
 			{
 				PluginInstallerLog.PrunedVersion(_logger, pluginId, version);
-				await DeleteTrustRecordVersion(pluginId, version);
+				await DeleteUntrustedRecordVersion(pluginId, version);
 			}
 		}
 
@@ -1731,12 +1850,13 @@ public sealed class PluginInstaller : IPluginInstaller
 			?.ActiveVersion?.Version;
 	}
 
-	private bool IsRunning(string pluginId)
+	private bool IsRunning(string pluginId, string? version = null)
 	{
 		var snapshot = _supervisor.Snapshot()
 			.FirstOrDefault(entry => string.Equals(entry.PluginId, pluginId, StringComparison.Ordinal));
 
-		return snapshot?.State is PluginRuntimeState.Running or PluginRuntimeState.Starting;
+		return snapshot?.State is PluginRuntimeState.Running or PluginRuntimeState.Starting
+			&& (version is null || string.Equals(snapshot.Version, version, StringComparison.Ordinal));
 	}
 
 	private void WriteCurrentVersion(string pluginId, string version)

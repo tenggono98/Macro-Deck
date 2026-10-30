@@ -46,6 +46,36 @@ public class LoginThrottleTests
 	}
 
 	[Test]
+	public void A_full_table_gives_up_its_oldest_client_but_keeps_global_lockouts_and_admits_a_new_client()
+	{
+		var throttle = new LoginThrottle(_time, 5, null, null, 8);
+		for (var i = 0; i < 5; i++)
+		{
+			throttle.RegisterFailure("pairing-code");
+		}
+
+		for (var address = 0; address < 50; address++)
+		{
+			_time.Advance(TimeSpan.FromMilliseconds(100));
+			var key = LoginThrottle.LoginKey($"2001:db8::{address:x}");
+			for (var i = 0; i < 5; i++)
+			{
+				throttle.TryReserve(key, out _);
+			}
+		}
+
+		var admitted = throttle.TryReserve(LoginThrottle.LoginKey("192.0.2.10"), out _);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(throttle.IsThrottled("pairing-code", out _), Is.True);
+			Assert.That(admitted, Is.True);
+			Assert.That(throttle.IsThrottled(LoginThrottle.LoginKey("2001:db8::0"), out _), Is.False);
+			Assert.That(throttle.IsThrottled(LoginThrottle.LoginKey("2001:db8::31"), out _), Is.True);
+		});
+	}
+
+	[Test]
 	public void Lockout_grows_with_further_failures_but_is_capped()
 	{
 		for (var i = 0; i < 20; i++)
@@ -124,5 +154,71 @@ public class LoginThrottleTests
 		}
 
 		Assert.That(defaultThrottle.IsThrottled("key", out _), Is.False);
+	}
+
+	[Test]
+	public async Task Parallel_reservations_on_one_key_admit_only_the_free_attempts()
+	{
+		using var start = new Barrier(32);
+		var attempts = Enumerable.Range(0, 32)
+			.Select(_ => Task.Factory.StartNew(() =>
+				{
+					start.SignalAndWait();
+					return _throttle.TryReserve("key", out var _);
+				},
+				TaskCreationOptions.LongRunning))
+			.ToArray();
+
+		var admitted = await Task.WhenAll(attempts);
+
+		await Assert.MultipleAsync(() =>
+		{
+			Assert.That(admitted.Count(granted => granted), Is.EqualTo(5));
+			Assert.That(_throttle.IsThrottled("key", out var retryAfter), Is.True);
+			Assert.That(retryAfter, Is.GreaterThan(TimeSpan.Zero));
+			return Task.CompletedTask;
+		});
+	}
+
+	[Test]
+	public void A_refused_reservation_reports_the_remaining_lockout()
+	{
+		for (var i = 0; i < 5; i++)
+		{
+			_throttle.TryReserve("key", out _);
+		}
+
+		_time.Advance(TimeSpan.FromSeconds(10));
+		var admitted = _throttle.TryReserve("key", out var retryAfter);
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(admitted, Is.False);
+			Assert.That(retryAfter, Is.EqualTo(TimeSpan.FromSeconds(20)));
+		});
+	}
+
+	[Test]
+	public void Clearing_logins_lifts_every_source_and_leaves_other_buckets_alone()
+	{
+		var first = LoginThrottle.LoginKey("203.0.113.7");
+		var second = LoginThrottle.LoginKey("usb:EXAMPLE0001");
+		for (var i = 0; i < 5; i++)
+		{
+			_throttle.RegisterFailure(first);
+			_throttle.RegisterFailure(second);
+			_throttle.RegisterFailure("203.0.113.7|device-enrollment");
+			_throttle.RegisterFailure("pairing-code");
+		}
+
+		_throttle.ClearLogins();
+
+		Assert.Multiple(() =>
+		{
+			Assert.That(_throttle.IsThrottled(first, out _), Is.False);
+			Assert.That(_throttle.IsThrottled(second, out _), Is.False);
+			Assert.That(_throttle.IsThrottled("203.0.113.7|device-enrollment", out _), Is.True);
+			Assert.That(_throttle.IsThrottled("pairing-code", out _), Is.True);
+		});
 	}
 }

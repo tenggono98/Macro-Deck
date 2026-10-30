@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 import { NotificationCenterService } from './notification-center.service';
+import { SecretApprovalService } from './secret-approval.service';
 
 import {
   isWorkspaceConstrained,
@@ -64,6 +65,10 @@ const notificationCenterStub = {
   badgeText: signal('0'),
 };
 
+const secretApprovalsStub = {
+  count: signal(0),
+};
+
 describe('NavigationService', () => {
   let service: NavigationService;
 
@@ -73,15 +78,46 @@ describe('NavigationService', () => {
     notificationCenterStub.hasNotifications.set(false);
     notificationCenterStub.hasActiveProgress.set(false);
     notificationCenterStub.badgeText.set('0');
+    secretApprovalsStub.count.set(0);
 
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         ...provideLocalizationTesting(),
         { provide: NotificationCenterService, useValue: notificationCenterStub },
+        { provide: SecretApprovalService, useValue: secretApprovalsStub },
       ],
     });
     service = TestBed.inject(NavigationService);
+  });
+
+  describe('approvals entry', () => {
+    const approvalsItem = () => service.mainNavGroups().flat().find(item => item.id === 'approvals');
+
+    it('is not listed while nothing waits for approval', () => {
+      expect(approvalsItem()).toBeUndefined();
+    });
+
+    it('links to the approvals page while something waits for approval', () => {
+      secretApprovalsStub.count.set(1);
+
+      expect(approvalsItem()?.route).toBe('/approvals');
+    });
+
+    it('shows how many steps wait for approval, with a spoken label', () => {
+      secretApprovalsStub.count.set(3);
+
+      expect(approvalsItem()?.indicator).toBe('3');
+      expect(approvalsItem()?.indicatorLabel).toBe('3 steps waiting for approval');
+    });
+
+    it('disappears again once everything is approved', () => {
+      secretApprovalsStub.count.set(1);
+      expect(approvalsItem()?.indicatorLabel).toBe('1 step waiting for approval');
+
+      secretApprovalsStub.count.set(0);
+      expect(approvalsItem()).toBeUndefined();
+    });
   });
 
   it('is expanded by default when wide', () => {
